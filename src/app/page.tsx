@@ -3,7 +3,6 @@ import { Ticker } from "@/components/ticker";
 import { ShowBands } from "@/components/show-bands";
 import { VerOEscuchar } from "@/components/ver-o-escuchar";
 import { Archivo } from "@/components/archivo";
-import { TiendaPlatea } from "@/components/tienda-platea";
 import { Newsletter } from "@/components/newsletter";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -50,7 +49,6 @@ export default async function Home() {
           <Archivo episodios={episodios} fechas={fechas} />
         </section>
 
-        <TiendaPlatea />
         <Newsletter />
       </main>
 
