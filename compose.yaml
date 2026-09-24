@@ -1,0 +1,45 @@
+# Compose local, para levantar el sitio igual que en el servidor.
+#
+# En el VPS el despliegue lo arma EasyPanel con su propia configuración (un
+# servicio Postgres aparte y las variables cargadas a mano); este archivo es
+# para probar la imagen de producción en la máquina.
+#
+# Variables: copiar .env.example a .env y ajustar.
+services:
+  web:
+    build: .
+    image: bacano-web
+    # Se publica en todas las interfaces para poder abrirlo desde el teléfono
+    # y revisar el responsivo. Desde esta máquina, entrar por 127.0.0.1 y no
+    # por "localhost": en Windows puede resolver a IPv6 y no llegar.
+    # Para dejarlo solo en la máquina: "127.0.0.1:3001:3000".
+    # Host en 3001 porque los renders de Remotion ocupan el 3000.
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://bacano:${POSTGRES_PASSWORD:-bacano}@db:5432/bacano
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Falta ADMIN_PASSWORD en .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Falta SESSION_SECRET en .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bacano
+      POSTGRES_USER: bacano
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bacano}
+    volumes:
+      - bacano-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bacano -d bacano"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  bacano-db:

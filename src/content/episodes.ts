@@ -1,0 +1,161 @@
+import type { Episodio } from "@/lib/types";
+
+/**
+ * Episodios escritos a mano, del más nuevo al más viejo.
+ *
+ * Lo nuevo ya no hace falta agregarlo acá: el sitio lee el feed del canal
+ * de YouTube (`src/lib/youtube.ts`). Esta lista queda para el archivo que
+ * el feed ya no muestra (solo trae los últimos 15) y para corregir un
+ * episodio cuyo título el feed interpreta mal: si el ID está acá, gana esto.
+ *
+ * Las duraciones están vacías porque el feed no las trae.
+ */
+export const episodios: Episodio[] = [
+  {
+    // Se transmitió en vivo el lunes 21 a las 22:00; YouTube lo fecha el 22.
+    id: "X5PafdFhFak",
+    showSlug: "fantoches-del-fantasy",
+    numero: "60",
+    titulo: "We are back",
+    fecha: "2026-09-21",
+    youtubeId: "X5PafdFhFak",
+    formatos: ["video"],
+  },
+  {
+    id: "fOV-mcHMbGM",
+    showSlug: "en-minusculas",
+    numero: "15",
+    titulo: "Libros top del año",
+    fecha: "2025-01-20",
+    youtubeId: "fOV-mcHMbGM",
+    formatos: ["video"],
+  },
+  {
+    id: "Lc_i11CTbcs",
+    showSlug: "en-minusculas",
+    numero: "14",
+    titulo: "Lecturas del mes",
+    fecha: "2024-12-28",
+    youtubeId: "Lc_i11CTbcs",
+    formatos: ["video"],
+  },
+  {
+    id: "mKU3rDE5kuE",
+    showSlug: "el-show-sin-dinos",
+    numero: "62",
+    titulo: "Alejandro Chalé y Mauricio Zoreda",
+    detalle: "Especial de The Beatles",
+    fecha: "2024-12-13",
+    youtubeId: "mKU3rDE5kuE",
+    formatos: ["video", "audio"],
+  },
+  {
+    id: "gJXFNlHAWns",
+    showSlug: "fantoches-del-fantasy",
+    titulo: "Waivers",
+    detalle: "Week 15",
+    fecha: "2024-12-11",
+    youtubeId: "gJXFNlHAWns",
+    formatos: ["video"],
+  },
+  {
+    id: "ZzoP5XJmwrk",
+    showSlug: "fantoches-del-fantasy",
+    titulo: "Waivers",
+    detalle: "Week 13",
+    fecha: "2024-11-27",
+    youtubeId: "ZzoP5XJmwrk",
+    formatos: ["video"],
+  },
+  {
+    id: "A-nrz-bwoSk",
+    showSlug: "el-show-sin-dinos",
+    numero: "61",
+    titulo: "Jorge Rivera",
+    fecha: "2024-11-26",
+    youtubeId: "A-nrz-bwoSk",
+    formatos: ["video", "audio"],
+  },
+  {
+    id: "Sn417CiYBUs",
+    showSlug: "fantoches-del-fantasy",
+    titulo: "Waivers",
+    detalle: "Week 12",
+    fecha: "2024-11-19",
+    youtubeId: "Sn417CiYBUs",
+    formatos: ["video"],
+  },
+  {
+    id: "6I-IaHwECpw",
+    showSlug: "el-show-sin-dinos",
+    numero: "60",
+    titulo: "María José Palma",
+    fecha: "2024-11-18",
+    youtubeId: "6I-IaHwECpw",
+    formatos: ["video", "audio"],
+  },
+  {
+    id: "9uxg69fb0kc",
+    showSlug: "fantoches-del-fantasy",
+    titulo: "Waivers",
+    detalle: "Week 11",
+    fecha: "2024-11-13",
+    youtubeId: "9uxg69fb0kc",
+    formatos: ["video"],
+  },
+  {
+    id: "zdDDEIFe-IQ",
+    showSlug: "fantoches-del-fantasy",
+    titulo: "Waivers",
+    detalle: "Week 10",
+    fecha: "2024-11-06",
+    youtubeId: "zdDDEIFe-IQ",
+    formatos: ["video"],
+  },
+  {
+    id: "W5oh9pg1OZg",
+    showSlug: "en-minusculas",
+    numero: "13",
+    titulo: "Lecturas del mes",
+    fecha: "2024-11-05",
+    youtubeId: "W5oh9pg1OZg",
+    formatos: ["video"],
+  },
+  {
+    id: "jaNNo8dzjes",
+    showSlug: "el-show-sin-dinos",
+    numero: "59",
+    titulo: "Jimena Ramón",
+    fecha: "2024-11-04",
+    youtubeId: "jaNNo8dzjes",
+    formatos: ["video", "audio"],
+  },
+  {
+    id: "DdIQUVzJbq8",
+    showSlug: "en-minusculas",
+    numero: "12",
+    titulo: "¿En qué libro te gustaría estar?",
+    fecha: "2024-10-29",
+    youtubeId: "DdIQUVzJbq8",
+    formatos: ["video"],
+  },
+  {
+    id: "eUqB-o0TWMg",
+    showSlug: "fantoches-del-fantasy",
+    titulo: "Waiver wire",
+    detalle: "Week 9",
+    fecha: "2024-10-29",
+    youtubeId: "eUqB-o0TWMg",
+    formatos: ["video"],
+  },
+  {
+    id: "1BoOOWQjwCs",
+    showSlug: "el-show-sin-dinos",
+    numero: "58",
+    titulo: "Mercy Portillo",
+    detalle: "Especialista en video y fotografía",
+    fecha: "2024-10-21",
+    youtubeId: "1BoOOWQjwCs",
+    formatos: ["video", "audio"],
+  },
+];

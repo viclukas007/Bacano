@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Marca */
+  --color-cian: #00efff;
+  --color-cian-tinta: #0a3a40;
+  --color-morado: #883ee8;
+  --color-morado-claro: #ede2ff;
+  --color-morado-tinta: #2a0d5c;
+
+  /* Neutros */
+  --color-tinta: #0a0a0a;
+  --color-humo: #141414;
+  --color-carbon: #1a1a1a;
+  --color-borde: #2c2c2c;
+  --color-gris: #a8a8a8;
+  --color-gris-suave: #8e8e8e;
+  --color-gris-tenue: #6e6e6e;
+
+  /* Plataformas y estados */
+  --color-vivo: #ff2d55;
+  --color-youtube: #ff3b30;
+  --color-spotify: #1ed760;
+
+  /* Tipografías */
+  --font-display: var(--font-anton), "Arial Narrow", sans-serif;
+  --font-sans: var(--font-space-grotesk), system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background: var(--color-tinta);
+    color: #ffffff;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* El foco tiene que verse sobre fondo negro. */
+  :focus-visible {
+    outline: 3px solid var(--color-cian);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Anton tiene mayúsculas muy altas: por debajo de 0.95 las líneas se tocan. */
+@utility display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  line-height: 0.95;
+}
+
+/* Marquesina del ticker. Se duplica el contenido en el markup y se
+   desplaza la mitad exacta, para que el bucle no tenga costura. */
+@keyframes bacano-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility ticker-pista {
+  animation: bacano-ticker 38s linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-pista {
+    animation: none;
+  }
 }
