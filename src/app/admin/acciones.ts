@@ -11,6 +11,13 @@ import {
   iniciarSesion,
 } from "@/lib/auth";
 import { TAG_CONTENIDO } from "@/lib/content";
+import {
+  describirReserva,
+  fechaValida,
+  horaValida,
+  sumarDias,
+  type TipoReserva,
+} from "@/lib/estudio";
 import type { Formato, Modo } from "@/lib/types";
 import { sincronizarYouTube } from "@/lib/youtube";
 
@@ -20,7 +27,15 @@ import { sincronizarYouTube } from "@/lib/youtube";
  * del sitio, así el cambio se ve al instante.
  */
 
-export type Estado = { error?: string; mensaje?: string } | null;
+export type Estado = {
+  error?: string;
+  mensaje?: string;
+  /**
+   * Lo que se mandó, para volver a mostrarlo junto al error: React reinicia
+   * el formulario al terminar la acción y si no se perdería lo tecleado.
+   */
+  valores?: Record<string, string>;
+} | null;
 
 function texto(fd: FormData, campo: string): string {
   return String(fd.get(campo) ?? "").trim();
@@ -232,4 +247,73 @@ export async function eliminarPrograma(fd: FormData): Promise<void> {
   await admin.eliminarPrograma(slug);
   publicar();
   redirect("/admin/programas");
+}
+
+// --- Estudio ------------------------------------------------------------------
+//
+// Las reservas son solo del admin: no tocan la caché del sitio.
+
+/** La base rechazó la reserva porque se pisa con otra (exclusion_violation). */
+function chocaEnBase(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: string }).code === "23P01"
+  );
+}
+
+export async function guardarReserva(
+  _previo: Estado,
+  fd: FormData,
+): Promise<Estado> {
+  await exigirSesion();
+
+  const idAnterior = opcional(fd, "idAnterior");
+  const quien = texto(fd, "quien");
+  const tipo = texto(fd, "tipo") as TipoReserva;
+  const fecha = texto(fd, "fecha");
+  const inicio = texto(fd, "inicio");
+  const fin = texto(fd, "fin");
+  const notas = texto(fd, "notas");
+
+  const valores = { quien, tipo, fecha, inicio, fin, notas };
+  const fallo = (error: string): Estado => ({ error, valores });
+
+  if (!quien) return fallo("Poné quién ocupa el estudio.");
+  if (tipo !== "renta" && tipo !== "propio") return fallo("Elegí el tipo.");
+  if (!fechaValida(fecha)) return fallo("La fecha tiene que ser AAAA-MM-DD.");
+  if (!horaValida(inicio) || !horaValida(fin)) return fallo("Las horas van como 22:00.");
+  if (inicio === fin) return fallo("Termina a la misma hora que empieza.");
+
+  const desde = `${fecha} ${inicio}`;
+  // Si "termina antes de empezar" es que pasa de medianoche: de 22:00 a 01:00.
+  const hasta = fin > inicio ? `${fecha} ${fin}` : `${sumarDias(fecha, 1)} ${fin}`;
+  const id = idAnterior ? Number(idAnterior) : undefined;
+
+  const choque = await admin.choqueReserva(desde, hasta, id);
+  if (choque) {
+    return fallo(`El estudio ya está ocupado: ${describirReserva(choque)}.`);
+  }
+
+  try {
+    await admin.guardarReserva(
+      { quien, tipo, desde, hasta, notas: notas || undefined },
+      id,
+    );
+  } catch (error) {
+    // Alguien guardó otra en el mismo hueco entre la comprobación y acá.
+    if (chocaEnBase(error)) {
+      return fallo("Ese horario se acaba de ocupar. Revisá la semana.");
+    }
+    throw error;
+  }
+
+  redirect(`/admin/estudio?semana=${fecha}`);
+}
+
+export async function eliminarReserva(fd: FormData): Promise<void> {
+  await exigirSesion();
+  await admin.eliminarReserva(Number(texto(fd, "id")));
+  const fecha = texto(fd, "fecha");
+  redirect(fechaValida(fecha) ? `/admin/estudio?semana=${fecha}` : "/admin/estudio");
 }

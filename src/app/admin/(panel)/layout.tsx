@@ -10,6 +10,7 @@ export const metadata = {
 const SECCIONES = [
   { href: "/admin", etiqueta: "Episodios" },
   { href: "/admin/programas", etiqueta: "Programas" },
+  { href: "/admin/estudio", etiqueta: "Estudio" },
   { href: "/admin/clave", etiqueta: "Clave" },
 ];
 

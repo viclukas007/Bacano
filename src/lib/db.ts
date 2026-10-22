@@ -93,6 +93,27 @@ const ESQUEMA = `
     valor           text NOT NULL,
     actualizado_en  timestamptz NOT NULL DEFAULT now()
   );
+
+  -- Reservas del estudio (solo del admin; ver src/lib/estudio.ts).
+  -- desde/hasta van sin zona horaria, en hora de Mérida tal cual se escriben.
+  CREATE TABLE IF NOT EXISTS reservas (
+    id              serial PRIMARY KEY,
+    quien           text NOT NULL,
+    -- 'renta' si viene de afuera, 'propio' si es un programa del canal.
+    tipo            text NOT NULL DEFAULT 'renta' CHECK (tipo IN ('renta', 'propio')),
+    desde           timestamp NOT NULL,
+    hasta           timestamp NOT NULL,
+    notas           text,
+    creado_en       timestamptz NOT NULL DEFAULT now(),
+    actualizado_en  timestamptz NOT NULL DEFAULT now(),
+    CHECK (hasta > desde),
+    -- Dos reservas no pueden ocupar el estudio al mismo tiempo. El rango es
+    -- [desde, hasta): una que termina a las 12 y otra que empieza a las 12
+    -- no chocan. La base lo garantiza aunque se guarden dos a la vez.
+    EXCLUDE USING gist (tsrange(desde, hasta) WITH &&)
+  );
+
+  CREATE INDEX IF NOT EXISTS reservas_desde ON reservas (desde);
 `;
 
 async function sembrar() {
