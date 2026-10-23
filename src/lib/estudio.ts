@@ -2,8 +2,8 @@
  * Reservas del estudio.
  *
  * El estudio es uno solo y lo ocupan los programas del canal o quien lo
- * renta. Es control interno: vive en el admin y el sitio público no lo
- * muestra.
+ * renta. Las reservas se manejan en el admin; el sitio público muestra la
+ * ocupación en modo lectura, sin el nombre de quien renta ni las notas.
  *
  * Las horas se guardan y se manejan en hora de Mérida tal cual se escriben
  * ("2026-10-26 22:00"), sin pasar por `Date` ni por zonas horarias: el
@@ -133,6 +133,51 @@ export function horaDe(instante: string): string {
  */
 export function minutosEnDia(instante: string, dia: string): number {
   return diaDe(instante) === dia ? minutos(horaDe(instante)) : 1440;
+}
+
+// --- Grilla de la semana ------------------------------------------------------
+
+export interface Franja {
+  reserva: Reserva;
+  /** Minutos desde las 00:00 del día de la columna. */
+  desde: number;
+  hasta: number;
+}
+
+/**
+ * Lo que de cada reserva cae dentro de un día. Una que pasa de medianoche
+ * aparece en dos columnas: hasta las 24:00 en la primera y desde las 00:00
+ * en la siguiente.
+ */
+export function franjasDelDia(dia: string, reservas: Reserva[]): Franja[] {
+  const inicioDia = `${dia} 00:00`;
+  const finDia = `${sumarDias(dia, 1)} 00:00`;
+  return reservas.flatMap((r) => {
+    const desde = r.desde > inicioDia ? r.desde : inicioDia;
+    const hasta = r.hasta < finDia ? r.hasta : finDia;
+    if (desde >= hasta) return [];
+    return [
+      {
+        reserva: r,
+        desde: minutosEnDia(desde, dia),
+        hasta: minutosEnDia(hasta, dia),
+      },
+    ];
+  });
+}
+
+/**
+ * La hora en que arranca la grilla: `minima`, salvo que una reserva de la
+ * semana empiece antes. Lo que viene colgando de la noche anterior (termina
+ * a las 00:30, digamos) no cuenta.
+ */
+export function primeraHora(lunes: string, reservas: Reserva[], minima: number): number {
+  return Math.min(
+    minima,
+    ...reservas
+      .filter((r) => diaDe(r.desde) >= lunes)
+      .map((r) => Math.floor(minutos(horaDe(r.desde)) / 60)),
+  );
 }
 
 // --- Etiquetas ----------------------------------------------------------------

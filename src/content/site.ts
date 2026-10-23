@@ -27,6 +27,13 @@ export const site = {
     url: "https://open.spotify.com/show/4v9CAI88mbCBenzjL4zi4e",
   },
 
+  whatsapp: {
+    /** El de las rentas del estudio. */
+    numero: "+52 1 999 392 3583",
+    /** Abre el chat con el mensaje ya escrito. */
+    url: `https://wa.me/5219993923583?text=${encodeURIComponent("Quiero rentar el estudio")}`,
+  },
+
   redes: [
     { nombre: "YouTube", url: "https://www.youtube.com/@BacanoMedia" },
     { nombre: "Instagram", url: "https://instagram.com/" },
@@ -37,6 +44,7 @@ export const site = {
   navegacion: [
     { etiqueta: "Programas", href: "#programas" },
     { etiqueta: "Ver y escuchar", href: "#archivo" },
+    { etiqueta: "Estudio", href: "#estudio" },
     { etiqueta: "Marcas", href: "#marcas" },
   ],
 } as const;

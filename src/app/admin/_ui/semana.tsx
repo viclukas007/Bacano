@@ -3,9 +3,10 @@ import {
   diaCorto,
   diaDe,
   diaLargo,
+  franjasDelDia,
   horaDe,
-  minutosEnDia,
   NOMBRE_TIPO,
+  primeraHora,
   rangoHoras,
   sumarDias,
   type Reserva,
@@ -35,35 +36,6 @@ const PUNTO_TIPO: Record<TipoReserva, string> = {
   propio: "bg-morado",
 };
 
-interface Franja {
-  reserva: Reserva;
-  /** Minutos desde las 00:00 del día de la columna. */
-  desde: number;
-  hasta: number;
-}
-
-/**
- * Lo que de cada reserva cae dentro de un día. Una que pasa de medianoche
- * aparece en dos columnas: hasta las 24:00 en la primera y desde las 00:00
- * en la siguiente.
- */
-function franjasDelDia(dia: string, reservas: Reserva[]): Franja[] {
-  const inicioDia = `${dia} 00:00`;
-  const finDia = `${sumarDias(dia, 1)} 00:00`;
-  return reservas.flatMap((r) => {
-    const desde = r.desde > inicioDia ? r.desde : inicioDia;
-    const hasta = r.hasta < finDia ? r.hasta : finDia;
-    if (desde >= hasta) return [];
-    return [
-      {
-        reserva: r,
-        desde: minutosEnDia(desde, dia),
-        hasta: minutosEnDia(hasta, dia),
-      },
-    ];
-  });
-}
-
 function dosDigitos(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -80,15 +52,7 @@ export function Semana({
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
   const porDia = dias.map((dia) => franjasDelDia(dia, reservas));
 
-  // La grilla se estira hacia arriba solo si una reserva de la semana
-  // empieza antes de la hora inicial; lo que viene colgando de la noche
-  // anterior (termina a las 00:30, digamos) no cuenta.
-  const primera = Math.min(
-    HORA_INICIAL,
-    ...reservas
-      .filter((r) => diaDe(r.desde) >= lunes)
-      .map((r) => Math.floor(minutosEnDia(r.desde, diaDe(r.desde)) / 60)),
-  );
+  const primera = primeraHora(lunes, reservas, HORA_INICIAL);
   const tope = primera * 60;
   const horas = Array.from({ length: 24 - primera }, (_, i) => primera + i);
   const alto = horas.length * ALTO_HORA;

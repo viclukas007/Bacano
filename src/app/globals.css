@@ -68,6 +68,16 @@
   line-height: 0.95;
 }
 
+/* Horario tomado en el calendario del estudio: se lee "no disponible"
+   sin competir con el cian de los botones. */
+@utility rayado {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-borde) 0 6px,
+    var(--color-carbon) 6px 12px
+  );
+}
+
 /* Marquesina del ticker. Se duplica el contenido en el markup y se
    desplaza la mitad exacta, para que el bucle no tenga costura. */
 @keyframes bacano-ticker {

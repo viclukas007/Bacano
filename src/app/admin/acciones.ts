@@ -10,7 +10,7 @@ import {
   exigirSesion,
   iniciarSesion,
 } from "@/lib/auth";
-import { TAG_CONTENIDO } from "@/lib/content";
+import { TAG_CONTENIDO, TAG_ESTUDIO } from "@/lib/content";
 import {
   describirReserva,
   fechaValida,
@@ -251,7 +251,8 @@ export async function eliminarPrograma(fd: FormData): Promise<void> {
 
 // --- Estudio ------------------------------------------------------------------
 //
-// Las reservas son solo del admin: no tocan la caché del sitio.
+// El sitio muestra la ocupación del estudio con su propia caché: se invalida
+// aparte, para no volver a leer el canal de YouTube por una reserva.
 
 /** La base rechazó la reserva porque se pisa con otra (exclusion_violation). */
 function chocaEnBase(error: unknown): boolean {
@@ -308,12 +309,14 @@ export async function guardarReserva(
     throw error;
   }
 
+  updateTag(TAG_ESTUDIO);
   redirect(`/admin/estudio?semana=${fecha}`);
 }
 
 export async function eliminarReserva(fd: FormData): Promise<void> {
   await exigirSesion();
   await admin.eliminarReserva(Number(texto(fd, "id")));
+  updateTag(TAG_ESTUDIO);
   const fecha = texto(fd, "fecha");
   redirect(fechaValida(fecha) ? `/admin/estudio?semana=${fecha}` : "/admin/estudio");
 }

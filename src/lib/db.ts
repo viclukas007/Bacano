@@ -94,7 +94,7 @@ const ESQUEMA = `
     actualizado_en  timestamptz NOT NULL DEFAULT now()
   );
 
-  -- Reservas del estudio (solo del admin; ver src/lib/estudio.ts).
+  -- Reservas del estudio (se editan en el admin; ver src/lib/estudio.ts).
   -- desde/hasta van sin zona horaria, en hora de Mérida tal cual se escriben.
   CREATE TABLE IF NOT EXISTS reservas (
     id              serial PRIMARY KEY,

@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prepararBase, sql } from "@/lib/db";
+import { sumarDias, type Reserva } from "@/lib/estudio";
 import { sincronizarYouTube } from "@/lib/youtube";
 import type { Episodio, EpisodioConShow, Formato, Modo, Show } from "@/lib/types";
 
@@ -167,6 +168,41 @@ export async function getUltimoDelCanal(): Promise<
 /** El programa que se transmite en vivo, si hay alguno. */
 export async function getShowEnVivo(): Promise<Show | undefined> {
   return (await getShows()).find((s) => s.modo === "vivo");
+}
+
+// --- Ocupación del estudio, en caché -----------------------------------------
+
+/** El admin la invalida al guardar o borrar una reserva. */
+export const TAG_ESTUDIO = "estudio";
+
+/** Lo que el público ve de una renta en lugar del nombre del cliente. */
+export const OCUPADO = "Ocupado";
+
+// De una renta solo sale de la base que el horario está tomado: el nombre del
+// cliente se cambia por OCUPADO en la consulta misma y las notas no se piden.
+// Los programas del canal sí van con su nombre.
+async function cargarOcupacion(desde: string, hasta: string): Promise<Reserva[]> {
+  await prepararBase();
+  const filas = await sql<Reserva[]>`
+    SELECT id, tipo,
+      CASE WHEN tipo = 'propio' THEN quien ELSE ${OCUPADO}::text END AS quien,
+      to_char(desde, 'YYYY-MM-DD HH24:MI') AS desde,
+      to_char(hasta, 'YYYY-MM-DD HH24:MI') AS hasta
+    FROM reservas
+    WHERE desde < ${hasta}::timestamp AND hasta > ${desde}::timestamp
+    ORDER BY desde
+  `;
+  return filas.map((f) => ({ ...f }));
+}
+
+const getOcupacion = unstable_cache(cargarOcupacion, ["estudio"], {
+  tags: [TAG_ESTUDIO],
+  revalidate: REVISION,
+});
+
+/** Quién ocupa el estudio la semana que empieza en `lunes`, para el sitio. */
+export async function getOcupacionEstudio(lunes: string): Promise<Reserva[]> {
+  return getOcupacion(`${lunes} 00:00`, `${sumarDias(lunes, 7)} 00:00`);
 }
 
 // --- Etiquetas y formato ------------------------------------------------------

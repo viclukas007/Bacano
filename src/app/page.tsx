@@ -4,8 +4,10 @@ import { ShowBands } from "@/components/show-bands";
 import { VerOEscuchar } from "@/components/ver-o-escuchar";
 import { Archivo } from "@/components/archivo";
 import { Newsletter } from "@/components/newsletter";
+import { RentaEstudio } from "@/components/renta-estudio";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { WhatsAppFlotante } from "@/components/whatsapp-flotante";
 import { fechaCorta, getEpisodios } from "@/lib/content";
 
 // La home se arma en cada petición, pero con el contenido que `content.ts`
@@ -14,7 +16,12 @@ import { fechaCorta, getEpisodios } from "@/lib/content";
 // la base.
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ semana?: string }>;
+}) {
+  const { semana } = await searchParams;
   const episodios = await getEpisodios();
 
   // Las fechas se formatean acá, en el servidor, y viajan ya listas: así el
@@ -49,10 +56,13 @@ export default async function Home() {
           <Archivo episodios={episodios} fechas={fechas} />
         </section>
 
+        <RentaEstudio semana={semana} />
+
         <Newsletter />
       </main>
 
       <SiteFooter />
+      <WhatsAppFlotante />
     </>
   );
 }
