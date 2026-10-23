@@ -158,7 +158,7 @@ export function Semana({
             {NOMBRE_TIPO[tipo]}
           </span>
         ))}
-        <span>Hacé clic en un hueco para reservar a esa hora.</span>
+        <span>Haz clic en un hueco para reservar a esa hora.</span>
       </p>
     </>
   );

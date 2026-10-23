@@ -80,7 +80,7 @@ export function ReservaForm({
           </Campo>
           <Campo
             etiqueta="Hasta"
-            ayuda="Si pasa de medianoche, poné la hora del día siguiente: de 22:00 a 01:00."
+            ayuda="Si pasa de medianoche, pon la hora del día siguiente: de 22:00 a 01:00."
           >
             <Entrada name="fin" type="time" defaultValue={v?.fin ?? fin} required />
           </Campo>

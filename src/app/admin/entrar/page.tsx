@@ -21,7 +21,7 @@ export default async function Entrar({
         <h1 className="display mb-7 text-[2.25rem] text-white">Admin</h1>
         {clave === "cambiada" && (
           <p className="mb-5 border-2 border-cian px-4 py-3 text-[14px] text-cian">
-            Clave cambiada. Entrá con la nueva.
+            Clave cambiada. Entra con la nueva.
           </p>
         )}
         <FormularioEntrar />

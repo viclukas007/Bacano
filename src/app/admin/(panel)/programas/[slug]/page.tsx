@@ -3,7 +3,7 @@ import { contarEpisodiosDe, obtenerPrograma } from "@/lib/admin";
 import { ProgramaForm } from "@/app/admin/_ui/programa-form";
 
 const ERRORES: Record<string, string> = {
-  "con-episodios": "No se puede borrar un programa con episodios. Marcalo como oculto.",
+  "con-episodios": "No se puede borrar un programa con episodios. Márcalo como oculto.",
 };
 
 export default async function EditarPrograma({

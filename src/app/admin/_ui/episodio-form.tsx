@@ -41,7 +41,7 @@ export function EpisodioForm({
           <Campo etiqueta="Programa">
             <Selector name="showSlug" defaultValue={e?.showSlug ?? ""} required>
               <option value="" disabled>
-                Elegí uno
+                Elige uno
               </option>
               {programas.map((p) => (
                 <option key={p.slug} value={p.slug}>
@@ -153,8 +153,8 @@ export function EpisodioForm({
             </a>
           )}
           <p className="text-[13px]">
-            Si lo borrás y sigue en el canal, el feed lo vuelve a traer. Para
-            que no aparezca, marcalo como oculto.
+            Si lo borras y sigue en el canal, el feed lo vuelve a traer. Para
+            que no aparezca, márcalo como oculto.
           </p>
           <form
             action={eliminarEpisodio}

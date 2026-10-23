@@ -44,8 +44,8 @@ export async function RentaEstudio({ semana }: { semana?: string }) {
           estudio
         </h2>
         <p className="max-w-[420px] text-base leading-relaxed text-gris sm:text-lg lg:pb-2.5 lg:text-right">
-          El estudio donde grabamos Bacano también se renta. Mirá qué horarios
-          están libres y escribinos para apartar el tuyo.
+          El estudio donde grabamos Bacano también se renta. Mira qué horarios
+          están libres y escríbenos para apartar el tuyo.
         </p>
       </div>
 
@@ -60,8 +60,8 @@ export async function RentaEstudio({ semana }: { semana?: string }) {
 
       <div className="mt-8 flex flex-col gap-4 border-l-[5px] border-cian bg-carbon p-6 sm:flex-row sm:items-center sm:gap-5">
         <p className="flex-grow text-[15px] leading-relaxed text-gris sm:text-base">
-          ¿Viste un horario libre? Mandanos un WhatsApp al {site.whatsapp.numero}{" "}
-          y lo apartamos.
+          ¿Viste un horario libre? Mándanos un WhatsApp al {site.whatsapp.numero}{" "}
+          y te lo apartamos.
         </p>
         <a
           href={site.whatsapp.url}

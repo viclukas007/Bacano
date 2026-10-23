@@ -188,7 +188,7 @@ export function ProgramaForm({
           </p>
           {episodios > 0 ? (
             <p className="text-[13px]">
-              Con episodios no se puede borrar. Si dejó de existir, marcalo
+              Con episodios no se puede borrar. Si dejó de existir, márcalo
               como oculto.
             </p>
           ) : (

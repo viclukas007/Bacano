@@ -16,7 +16,7 @@ export async function suscribir(
   const correo = String(formData.get("correo") ?? "").trim();
 
   if (!CORREO.test(correo)) {
-    return { ok: false, mensaje: "Revisá el correo, parece incompleto." };
+    return { ok: false, mensaje: "Revisa el correo, parece incompleto." };
   }
 
   // TODO(admin): guardar en la base y disparar el correo de bienvenida.

@@ -136,8 +136,8 @@ export async function guardarEpisodio(
 
   if (!titulo) return { error: "Falta el título." };
   if (!FECHA.test(fecha)) return { error: "La fecha tiene que ser AAAA-MM-DD." };
-  if (!showSlug) return { error: "Elegí un programa." };
-  if (lista.length === 0) return { error: "Marcá al menos un formato." };
+  if (!showSlug) return { error: "Elige un programa." };
+  if (lista.length === 0) return { error: "Marca al menos un formato." };
   if (youtubeId && !ID_YOUTUBE.test(youtubeId)) {
     return { error: "El ID de YouTube son los 11 caracteres después de v=." };
   }
@@ -203,8 +203,8 @@ export async function guardarPrograma(
   if (!SLUG.test(slug)) {
     return { error: "El slug va en minúsculas, sin espacios: 'mi-programa'." };
   }
-  if (modo !== "vivo" && modo !== "grabado") return { error: "Elegí el modo." };
-  if (lista.length === 0) return { error: "Marcá al menos un formato." };
+  if (modo !== "vivo" && modo !== "grabado") return { error: "Elige el modo." };
+  if (lista.length === 0) return { error: "Marca al menos un formato." };
   if (![fondo, tinta, secundario].every((c) => COLOR.test(c))) {
     return { error: "Los colores van en hexadecimal: #883EE8." };
   }
@@ -280,8 +280,8 @@ export async function guardarReserva(
   const valores = { quien, tipo, fecha, inicio, fin, notas };
   const fallo = (error: string): Estado => ({ error, valores });
 
-  if (!quien) return fallo("Poné quién ocupa el estudio.");
-  if (tipo !== "renta" && tipo !== "propio") return fallo("Elegí el tipo.");
+  if (!quien) return fallo("Pon quién ocupa el estudio.");
+  if (tipo !== "renta" && tipo !== "propio") return fallo("Elige el tipo.");
   if (!fechaValida(fecha)) return fallo("La fecha tiene que ser AAAA-MM-DD.");
   if (!horaValida(inicio) || !horaValida(fin)) return fallo("Las horas van como 22:00.");
   if (inicio === fin) return fallo("Termina a la misma hora que empieza.");
@@ -304,7 +304,7 @@ export async function guardarReserva(
   } catch (error) {
     // Alguien guardó otra en el mismo hueco entre la comprobación y acá.
     if (chocaEnBase(error)) {
-      return fallo("Ese horario se acaba de ocupar. Revisá la semana.");
+      return fallo("Ese horario se acaba de ocupar. Revisa la semana.");
     }
     throw error;
   }

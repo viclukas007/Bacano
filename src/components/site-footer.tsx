@@ -5,7 +5,7 @@ import { iconosRed } from "@/components/icons";
 const LEGALES = [
   { etiqueta: "Términos", href: "#legales" },
   { etiqueta: "Privacidad", href: "#privacidad" },
-  { etiqueta: "Anunciá acá", href: "#marcas" },
+  { etiqueta: "Anúnciate aquí", href: "#marcas" },
 ];
 
 export function SiteFooter() {

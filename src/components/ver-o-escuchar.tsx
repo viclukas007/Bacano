@@ -47,7 +47,7 @@ export async function VerOEscuchar() {
         </EmbedFacade>
 
         <p className="my-5 text-[15px] leading-relaxed text-gris">
-          Los tres programas viven acá, con video. Completo, sin cuenta, para
+          Los tres programas viven aquí, con video. Completo, sin cuenta, para
           cualquiera.
         </p>
 
