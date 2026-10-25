@@ -1,8 +1,7 @@
+import { APERTURA, CIERRE } from "@/lib/carrito-estudio";
 import {
   diaCorto,
   franjasDelDia,
-  horaDe,
-  primeraHora,
   rangoHoras,
   sumarDias,
   type Reserva,
@@ -17,9 +16,6 @@ import {
 
 /** Alto de una hora en la grilla, en píxeles. */
 const ALTO_HORA = 36;
-
-/** La grilla arranca acá, salvo que haya algo más temprano. Termina a las 24. */
-const HORA_INICIAL = 8;
 
 const ESTILO_TIPO: Record<TipoReserva, string> = {
   renta: "rayado text-white",
@@ -46,11 +42,13 @@ export function CalendarioEstudio({
   reservas: Reserva[];
 }) {
   const dias = Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i));
-  const porDia = dias.map((dia) => franjasDelDia(dia, reservas));
+  const porDia = dias.map((dia) => franjasDelDia(dia, reservas)
+    .filter((f) => f.hasta > APERTURA * 60 && f.desde < CIERRE * 60)
+    .map((f) => ({ ...f, desde: Math.max(f.desde, APERTURA * 60), hasta: Math.min(f.hasta, CIERRE * 60) })));
 
-  const primera = primeraHora(lunes, reservas, HORA_INICIAL);
+  const primera = APERTURA;
   const tope = primera * 60;
-  const horas = Array.from({ length: 24 - primera }, (_, i) => primera + i);
+  const horas = Array.from({ length: CIERRE - primera }, (_, i) => primera + i);
   const alto = horas.length * ALTO_HORA;
   const arriba = (minutosDelDia: number) => ((minutosDelDia - tope) / 60) * ALTO_HORA;
 
@@ -100,9 +98,7 @@ export function CalendarioEstudio({
                 />
               ))}
               {porDia[i].map((f) => {
-                // La cola de una reserva de la noche anterior que termina
-                // antes de que arranque la grilla va como una tira arriba.
-                const colgante = f.hasta <= tope;
+                // Las franjas ya están recortadas al horario público.
                 const desde = Math.max(f.desde, tope);
                 return (
                   <div
@@ -110,28 +106,18 @@ export function CalendarioEstudio({
                     className={`absolute inset-x-0.5 z-10 overflow-hidden px-1.5 py-1 text-[12px] leading-tight ${
                       ESTILO_TIPO[f.reserva.tipo]
                     }`}
-                    style={
-                      colgante
-                        ? { top: 0, height: 20 }
-                        : {
+                    style={{
                             top: arriba(desde),
                             height: Math.max(((f.hasta - desde) / 60) * ALTO_HORA - 2, 14),
-                          }
-                    }
+                          }}
                     title={`${f.reserva.quien} · ${rangoHoras(f.reserva)}`}
                   >
-                    {colgante ? (
-                      <span className="display block truncate text-[11px] leading-[12px] tracking-[0.04em]">
-                        ↑ {f.reserva.quien} hasta las {horaDe(f.reserva.hasta)}
-                      </span>
-                    ) : (
-                      <>
+                    <>
                         <span className="display block truncate text-[12px] tracking-[0.04em]">
                           {f.reserva.quien}
                         </span>
                         <span className="opacity-80">{rangoHoras(f.reserva)}</span>
                       </>
-                    )}
                   </div>
                 );
               })}
@@ -160,7 +146,7 @@ export function CalendarioEstudio({
               )}
             </p>
             {porDia[i].length === 0 ? (
-              <p className="pt-0.5 text-[15px] text-gris">Libre todo el día</p>
+              <p className="pt-0.5 text-[15px] text-gris">Libre de 08:00 a 21:00</p>
             ) : (
               <ul className="flex flex-wrap gap-1.5">
                 {porDia[i].map((f) => (
@@ -193,7 +179,7 @@ export function CalendarioEstudio({
           <span className="inline-block size-3 bg-morado" />
           Programa del canal
         </span>
-        <span>Horario de Mérida.</span>
+        <span>08:00–21:00 · Horario de Mérida.</span>
       </p>
     </>
   );

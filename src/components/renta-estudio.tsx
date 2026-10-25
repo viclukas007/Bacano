@@ -2,6 +2,7 @@ import Link from "next/link";
 import { site } from "@/content/site";
 import { getOcupacionEstudio } from "@/lib/content";
 import { fechaValida, hoyEnMerida, lunesDe, rangoSemana, sumarDias } from "@/lib/estudio";
+import { CarritoEstudio } from "@/components/carrito-estudio";
 import { CalendarioEstudio } from "@/components/calendario-estudio";
 import { IconWhatsApp } from "@/components/icons";
 
@@ -13,6 +14,8 @@ const NAVEGACION =
 
 export async function RentaEstudio({ semana }: { semana?: string }) {
   const hoy = hoyEnMerida();
+  const hora = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Merida", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+  const ahora = `${hoy} ${hora}`;
   const estaSemana = lunesDe(hoy);
   const ultima = sumarDias(estaSemana, SEMANAS_ADELANTE * 7);
   const pedida = semana && fechaValida(semana) ? lunesDe(semana) : estaSemana;
@@ -44,11 +47,15 @@ export async function RentaEstudio({ semana }: { semana?: string }) {
           estudio
         </h2>
         <p className="max-w-[420px] text-base leading-relaxed text-gris sm:text-lg lg:pb-2.5 lg:text-right">
-          El estudio donde grabamos Bacano también se renta. Mira qué horarios
-          están libres y escríbenos para apartar el tuyo.
+          Tu podcast, a tu manera. Elige tus horas de estudio, suma los servicios que necesitas y arma tu carrito.
         </p>
       </div>
 
+      <CarritoEstudio hoy={hoy} ahora={ahora} lunes={lunes} ultimaFecha={sumarDias(ultima, 6)} reservas={reservas} />
+
+      <div id="disponibilidad-estudio" className="scroll-mt-28">
+      <h3 className="display mb-3 text-[28px] text-white">Consulta los horarios</h3>
+      <p className="mb-5 text-sm text-gris">De 8:00 a. m. a 9:00 p. m., hora de Mérida. Agregar una sesión al carrito no aparta el horario.</p>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {irA(sumarDias(lunes, -7), "← Anterior", lunes > estaSemana)}
         {irA(estaSemana, "Esta semana", lunes !== estaSemana)}
@@ -57,11 +64,11 @@ export async function RentaEstudio({ semana }: { semana?: string }) {
       </div>
 
       <CalendarioEstudio lunes={lunes} hoy={hoy} reservas={reservas} />
+      </div>
 
       <div className="mt-8 flex flex-col gap-4 border-l-[5px] border-cian bg-carbon p-6 sm:flex-row sm:items-center sm:gap-5">
         <p className="flex-grow text-[15px] leading-relaxed text-gris sm:text-base">
-          ¿Viste un horario libre? Mándanos un WhatsApp al {site.whatsapp.numero}{" "}
-          y te lo apartamos.
+          ¿Tienes dudas sobre el estudio? Escríbenos al {site.whatsapp.numero}.
         </p>
         <a
           href={site.whatsapp.url}
@@ -70,7 +77,7 @@ export async function RentaEstudio({ semana }: { semana?: string }) {
           className="display flex shrink-0 items-center justify-center gap-2.5 bg-cian px-5 py-3 text-[16px] tracking-[0.06em] text-tinta transition-colors hover:bg-white"
         >
           <IconWhatsApp size={20} />
-          Quiero rentar el estudio
+          Hablar por WhatsApp
         </a>
       </div>
     </section>

@@ -44,7 +44,7 @@ export const site = {
   navegacion: [
     { etiqueta: "Programas", href: "#programas" },
     { etiqueta: "Ver y escuchar", href: "#archivo" },
-    { etiqueta: "Estudio", href: "#estudio" },
+    { etiqueta: "Renta de estudio", href: "#estudio" },
     { etiqueta: "Marcas", href: "#marcas" },
   ],
 } as const;

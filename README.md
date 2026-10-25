@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Carrito de renta del estudio
+
+El frontend está en la sección `#estudio` de la página principal. Permite configurar sesiones entre las 08:00 y las 21:00 (hora de Mérida), agregar servicios, editar el carrito y revisar los datos de contacto antes del pago.
+
+- [Plan y alcance](PLAN-RESERVAS.md).
+- [Bitácora de ejecución y validaciones](AVANCES-RESERVAS.md).
+- Catálogo y cálculos: `src/lib/carrito-estudio.ts`.
+- Configurador y carrito: `src/components/carrito-estudio.tsx`.
+- Pruebas: `npm run test:estudio`.
+
+El carrito se conserva localmente; los datos de contacto no se guardan ni se envían. El pago con Mercado Pago está pendiente de la segunda etapa: no se cobran pagos ni se crean reservas desde este frontend.
