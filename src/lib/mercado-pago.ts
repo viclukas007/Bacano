@@ -36,7 +36,7 @@ async function pedir<T>(ruta: string, config: ConfigPago, body?: unknown, clave?
 }
 export async function crearPreferencia(pedido: { id: string; total_centavos: number; correo: string; expira_en: Date | string }, config: ConfigPago) {
   const retorno = `${config.appUrl}/estudio/pago?pedido=${pedido.id}`;
-  const resultado = await pedir<{ id: string; init_point: string; sandbox_init_point: string }>("/checkout/preferences", config, {
+  const resultado = await pedir<{ id: string; init_point: string }>("/checkout/preferences", config, {
     items: [{ id: pedido.id, title: "Reserva de estudio Bacano", currency_id: "MXN", quantity: 1, unit_price: pedido.total_centavos / 100 }],
     payer: { email: pedido.correo }, external_reference: pedido.id,
     back_urls: { success: retorno, pending: retorno, failure: retorno }, auto_return: "approved",
@@ -45,7 +45,10 @@ export async function crearPreferencia(pedido: { id: string; total_centavos: num
     // Los medios diferidos pueden aprobarse después del apartado; se excluyen en esta versión.
     payment_methods: { excluded_payment_types: [{ id: "ticket" }, { id: "atm" }, { id: "bank_transfer" }], default_installments: 1 },
   }, pedido.id);
-  const checkout = config.produccion ? resultado.init_point : resultado.sandbox_init_point;
+  // Siempre init_point: con las credenciales de prueba actuales el checkout de
+  // prueba corre en www.mercadopago.com.mx; sandbox_init_point es el modelo
+  // viejo y responde "algo salió mal".
+  const checkout = resultado.init_point;
   let url: URL;
   try { url = new URL(checkout); } catch { throw new ErrorPago("Mercado Pago devolvió un checkout inválido.", PROVEEDOR_FALLO); }
   if (!resultado.id || url.protocol !== "https:" || !(url.hostname === "mercadopago.com.mx" || url.hostname.endsWith(".mercadopago.com.mx"))) throw new ErrorPago("Mercado Pago devolvió un checkout inválido.", PROVEEDOR_FALLO);
