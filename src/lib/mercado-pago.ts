@@ -16,13 +16,22 @@ export function configuracionPago(): ConfigPago {
 }
 export function pagosHabilitados() { try { configuracionPago(); return true; } catch { return false; } }
 
+// Fallos del proveedor como 503 y no 502: el proxy de EasyPanel sustituye los
+// 502 por su propia página HTML y el navegador se queda sin el mensaje ni la cookie.
+const PROVEEDOR_FALLO = 503;
+
 async function pedir<T>(ruta: string, config: ConfigPago, body?: unknown, clave?: string): Promise<T> {
   // URL fija: jamás se consulta una URL enviada por el webhook o el navegador.
   let respuesta: Response;
   try {
     respuesta = await fetch(`https://api.mercadopago.com${ruta}`, { method: body ? "POST" : "GET", headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json", ...(clave ? { "X-Idempotency-Key": clave } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}), cache: "no-store", signal: AbortSignal.timeout(10000) });
-  } catch { throw new ErrorPago("No pudimos comunicarnos con Mercado Pago. Intenta de nuevo.", 502); }
-  if (!respuesta.ok) throw new ErrorPago("Mercado Pago no pudo procesar la solicitud. Intenta de nuevo.", 502);
+  } catch { throw new ErrorPago("No pudimos comunicarnos con Mercado Pago. Intenta de nuevo.", PROVEEDOR_FALLO); }
+  if (!respuesta.ok) {
+    // Solo el código y el tipo de error: nunca el cuerpo completo, que puede traer datos del pago.
+    const detalle = await respuesta.json().then((j: { error?: string; message?: string }) => j?.error ?? j?.message ?? "").catch(() => "");
+    console.error(`[pagos] Mercado Pago respondió ${respuesta.status} en ${ruta.split("?")[0]}${detalle ? `: ${String(detalle).slice(0, 120)}` : ""}`);
+    throw new ErrorPago("Mercado Pago no pudo procesar la solicitud. Intenta de nuevo.", PROVEEDOR_FALLO);
+  }
   return respuesta.json() as Promise<T>;
 }
 export async function crearPreferencia(pedido: { id: string; total_centavos: number; correo: string; expira_en: Date | string }, config: ConfigPago) {
@@ -38,8 +47,8 @@ export async function crearPreferencia(pedido: { id: string; total_centavos: num
   }, pedido.id);
   const checkout = config.produccion ? resultado.init_point : resultado.sandbox_init_point;
   let url: URL;
-  try { url = new URL(checkout); } catch { throw new ErrorPago("Mercado Pago devolvió un checkout inválido.", 502); }
-  if (!resultado.id || url.protocol !== "https:" || !(url.hostname === "mercadopago.com.mx" || url.hostname.endsWith(".mercadopago.com.mx"))) throw new ErrorPago("Mercado Pago devolvió un checkout inválido.", 502);
+  try { url = new URL(checkout); } catch { throw new ErrorPago("Mercado Pago devolvió un checkout inválido.", PROVEEDOR_FALLO); }
+  if (!resultado.id || url.protocol !== "https:" || !(url.hostname === "mercadopago.com.mx" || url.hostname.endsWith(".mercadopago.com.mx"))) throw new ErrorPago("Mercado Pago devolvió un checkout inválido.", PROVEEDOR_FALLO);
   return { id: resultado.id, checkout: url.toString() };
 }
 export async function consultarPago(id: string, config: ConfigPago): Promise<PagoMP> {

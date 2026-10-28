@@ -13,6 +13,6 @@ export async function POST(request: Request) {
   try {
     const resultado = await mantenimientoPagos();
     revalidateTag("estudio", { expire: 0 });
-    return NextResponse.json(resultado, { status: resultado.errores.length ? 502 : 200, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(resultado, { status: resultado.errores.length ? 503 : 200, headers: { "Cache-Control": "no-store" } });
   } catch (error) { return respuestaError(error); }
 }
