@@ -4,7 +4,7 @@
 
 Frontend y backend implementados y validados en Docker local (32 pruebas: 19 de reglas y 13 de integración). El 2026-10-28 se probó el recorrido real en el entorno de prueba de Mercado Pago (pago aprobado, webhook, conciliación, reserva confirmada) y se activaron las credenciales de producción en https://www.bacano.mx. Los cobros son reales desde entonces.
 
-Pendientes: cron del mantenimiento, redirección `bacano.mx` → `www.bacano.mx`, borrar la reserva de prueba (pedido 7915293f, 11-nov-2026 15:00), revisión visual/manual y políticas comerciales definitivas.
+Pendientes: cron del mantenimiento, borrar la reserva de prueba (pedido 7915293f, 11-nov-2026 15:00), revisión visual/manual y políticas comerciales definitivas. La redirección `bacano.mx` → `www.bacano.mx` y el webhook productivo quedaron configurados el mismo 2026-10-28.
 
 ## Alcance acordado
 
@@ -96,4 +96,6 @@ El visitante puede armar su carrito y revisar contacto y total, con la identidad
 - [x] Habilitar el checkout en modo `test` y probar un pago aprobado con webhook y conciliación reales (rechazo y pendiente quedaron cubiertos solo por las pruebas automáticas).
 - [ ] Completar el recorrido manual y la revisión móvil/escritorio, incluido el tratamiento de datos de contacto.
 - [x] Cambiar al vendedor/credenciales/secreto de producción con `MERCADOPAGO_ENV=production` (2026-10-28).
-- [ ] Borrar de la base la reserva de prueba del 11-nov-2026 (pedido 7915293f) y redirigir `bacano.mx` a `www.bacano.mx`.
+- [ ] Borrar de la base la reserva de prueba del 11-nov-2026 (pedido 7915293f).
+- [x] Redirigir `bacano.mx` a `www.bacano.mx` (redirección permanente en EasyPanel, 2026-10-28).
+- [x] Webhook productivo en `https://www.bacano.mx/api/mercadopago/webhook`, firma verificada con el simulador del panel (2026-10-28).

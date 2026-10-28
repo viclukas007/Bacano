@@ -16,6 +16,8 @@ Validación local del 2026-10-25: 32 pruebas aprobadas (19 de reglas y 13 de int
 - Los pagos entre usuarios de prueba llegan con `live_mode: true`. `live_mode` solo se exige en producción.
 - `APP_URL` debe ser exactamente el origen por el que entra la gente (con o sin `www`): si no coincide, el checkout responde 403 "Abre el formulario desde el sitio de Bacano".
 - Si un webhook falla, Mercado Pago lo reintenta con esperas crecientes; el mantenimiento consulta el pago en la API y lo aplica sin esperar el reintento.
+- Para comprobar la clave del webhook sin pagar: panel → Webhooks → "Simular notificación" con el evento Pagos y un ID cualquiera. Si el servidor responde 401, la clave en EasyPanel no coincide; si responde 503 (pago inexistente), la firma pasó.
+- El dominio sin `www` debe redirigir al principal (regla de Redirects en EasyPanel); si ambos sirven el sitio, el que no coincide con `APP_URL` falla al pagar.
 
 ## Orden de activación
 

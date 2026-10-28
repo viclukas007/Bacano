@@ -18,7 +18,10 @@
 - El pago de prueba requiere un comprador de prueba con sesión iniciada (ni cuenta real ni invitado).
 - El primer pago aprobado llegó por webhook y el servidor respondió 422 porque los pagos de prueba traen `live_mode: true`; `live_mode` solo se exige en producción y ahora se registra qué campo falla. El mantenimiento concilió el pago contra la API y confirmó la reserva (pedido 7915293f, 11-nov-2026 15:00), visible en `/admin/pedidos` y en el calendario público.
 - Pruebas: 19 de reglas y 13 de integración en Docker aprobadas con los cambios; ESLint limpio.
-- Credenciales de producción activadas y cargadas en EasyPanel con `MERCADOPAGO_ENV=production`; el checkout de producción crea preferencias correctamente. Pendientes: webhook productivo con la ruta completa, cron, redirección del dominio sin www y borrado de la reserva de prueba.
+- Credenciales de producción activadas y cargadas en EasyPanel con `MERCADOPAGO_ENV=production`; el checkout de producción crea preferencias correctamente (vendedor 61072532).
+- Dominios: `www.bacano.mx` quedó como principal en EasyPanel y `bacano.mx` redirige con 301 (regla de Redirects `^https?://bacano\.mx/(.*)` → `https://www.bacano.mx/${1}`). Sin la redirección, quien entraba por el dominio sin www recibía 403 al pagar porque `APP_URL` no coincidía. Se corrigió además una entrada de dominio con el esquema duplicado.
+- Webhook productivo corregido con la ruta completa `https://www.bacano.mx/api/mercadopago/webhook` y el evento "Pagos (legacy)". El simulador del panel respondió 503 (pago inexistente), lo que confirma que la firma pasa con la clave cargada en EasyPanel; un 401 habría indicado clave incorrecta.
+- Pendientes: cron del mantenimiento en EasyPanel y borrado de la reserva de prueba del 11-nov-2026.
 
 ## 2026-10-25 — bitácora cronológica
 

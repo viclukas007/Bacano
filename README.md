@@ -8,7 +8,7 @@ El carrito y el backend de reservas/pagos están implementados. Se reutiliza la 
 
 **Mercado Pago está activo en producción** en https://www.bacano.mx desde el 2026-10-28. El recorrido completo se validó primero en el entorno de prueba de Mercado Pago (pago aprobado, webhook, conciliación y reserva confirmada) y después se cambiaron las credenciales a producción. Ver [PAGOS-MERCADOPAGO.md](PAGOS-MERCADOPAGO.md).
 
-La validación local aprobó 32 pruebas (19 de reglas y 13 de integración), ESLint, TypeScript, build de producción y comprobaciones HTTP. Las pruebas de integración usan PostgreSQL real en una base temporal y simulan la API de Mercado Pago. Pendientes: cron del mantenimiento en EasyPanel, redirección de `bacano.mx` a `www.bacano.mx`, borrar la reserva de prueba del 11-nov-2026 y la revisión visual/manual en móvil y escritorio.
+La validación local aprobó 32 pruebas (19 de reglas y 13 de integración), ESLint, TypeScript, build de producción y comprobaciones HTTP. Las pruebas de integración usan PostgreSQL real en una base temporal y simulan la API de Mercado Pago. Dominios en EasyPanel: `www.bacano.mx` es el principal y `bacano.mx` redirige a él (301). Pendientes: cron del mantenimiento en EasyPanel, borrar la reserva de prueba del 11-nov-2026 y la revisión visual/manual en móvil y escritorio.
 
 ## Ejecutar en local
 
