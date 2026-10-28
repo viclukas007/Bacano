@@ -5,6 +5,7 @@ import { fechaValida, hoyEnMerida, lunesDe, rangoSemana, sumarDias } from "@/lib
 import { CarritoEstudio } from "@/components/carrito-estudio";
 import { CalendarioEstudio } from "@/components/calendario-estudio";
 import { IconWhatsApp } from "@/components/icons";
+import { configuracionPago, pagosHabilitados } from "@/lib/mercado-pago";
 
 /** Hasta cuántas semanas adelante se puede mirar. Las pasadas no se muestran. */
 const SEMANAS_ADELANTE = 8;
@@ -51,7 +52,7 @@ export async function RentaEstudio({ semana }: { semana?: string }) {
         </p>
       </div>
 
-      <CarritoEstudio hoy={hoy} ahora={ahora} lunes={lunes} ultimaFecha={sumarDias(ultima, 6)} reservas={reservas} />
+      <CarritoEstudio hoy={hoy} ahora={ahora} lunes={lunes} ultimaFecha={sumarDias(ultima, 6)} reservas={reservas} pagoHabilitado={pagosHabilitados()} minutosApartado={pagosHabilitados() ? configuracionPago().minutos : 15} />
 
       <div id="disponibilidad-estudio" className="scroll-mt-28">
       <h3 className="display mb-3 text-[28px] text-white">Consulta los horarios</h3>

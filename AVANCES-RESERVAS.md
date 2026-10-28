@@ -1,6 +1,17 @@
 # Avances: carrito de renta del estudio
 
-## 2026-10-25
+## Estado actual: 2026-10-25
+
+- Frontend y backend de pedidos/pagos implementados; Docker local actualizado en http://127.0.0.1:3001/#estudio.
+- PostgreSQL existente reutilizado y migración aditiva aplicada. La comprobación de cantidad y huella de reservas no mostró cambios en los datos previos.
+- 32 pruebas aprobadas: 19 de reglas y 13 de integración. PostgreSQL fue real; la API de Mercado Pago fue simulada.
+- ESLint, TypeScript, build de producción, auditoría de dependencias y comprobación HTTP aprobados con Next.js 16.4.3.
+- Cobros deshabilitados. Pendientes: credenciales/vendedor, HTTPS, Webhook, cron, pruebas externas, revisión visual/manual y decisiones comerciales definitivas.
+- Guía de activación: [PAGOS-MERCADOPAGO.md](PAGOS-MERCADOPAGO.md). Seguimiento: [PLAN-RESERVAS.md](PLAN-RESERVAS.md).
+
+## 2026-10-25 — bitácora cronológica
+
+Las notas siguientes conservan el estado de cada etapa cuando se ejecutó. Las referencias iniciales a backend pendiente o datos de contacto solo en memoria describen la primera entrega; la implementación posterior del backend se registra en «Etapa 2».
 
 - Revisados AGENTS.md, CLAUDE.md, README.md y documentación local de Next.js sobre componentes y formularios.
 - Revisados la sección Estudio, el calendario público y el administrador de reservas existente.
@@ -44,3 +55,36 @@
 
 - La entrada Estudio ahora se muestra como Renta de estudio y enlaza a #estudio, donde está el configurador y el carrito.
 - La configuración se comparte entre el menú de escritorio y el menú móvil.
+
+### Etapa 2: pedidos, apartados y pagos
+
+- Plan de ejecución añadido en PLAN-RESERVAS.md; configuración y operación documentadas en PAGOS-MERCADOPAGO.md.
+- Reutilizada la base PostgreSQL existente. Migración aditiva con estudio_pedidos, estudio_pedido_sesiones y estudio_pagos; reservas añade vínculo al pedido, estado y expiración. Inicialización y semilla protegidas por bloqueo transaccional.
+- Implementada validación estricta del servidor: contacto, fechas y horario de Mérida, ventana de ocho semanas, límites de cantidades, cruces y recálculo de importes en centavos. Los precios enviados por el cliente se ignoran.
+- Apartados de 15 minutos configurables, limitados por el inicio de la sesión. La exclusión de traslapes de reservas protege tanto apartados como reservas manuales; un carrito con conflicto se revierte completo.
+- Checkout Pro con preferencia creada desde servidor, referencia al pedido, URLs de retorno, expiración e intento idempotente. Se recupera un pedido existente al repetir o recargar el mismo carrito.
+- Webhook HMAC que consulta el pago y comprueba referencia, importe, moneda, vendedor y entorno antes de confirmar. Repetidos no duplican reservas; aprobaciones tardías, segundo pago, reembolsos y contracargos aparecen en revisión.
+- Página /estudio/pago con estado interno, consulta protegida por cookie HttpOnly, actualización y conciliación del pago. La redirección nunca confirma por sí sola.
+- Vista /admin/pedidos con contacto, conceptos, preferencias y pagos. Calendario actualizado; se distinguen apartados y no se permite modificar/eliminar reservas vinculadas a pagos desde los formularios manuales.
+- Mantenimiento autenticado para cron: expirar apartados y conciliar pedidos. Añadidas variables de entorno con cobro deshabilitado por defecto.
+- Actualizado Next.js y eslint-config-next de 16.3.5 a 16.4.3 tras detectar avisos de seguridad en dependencias existentes. Actualizadas dependencias transitivas compatibles y package-lock.json. npm ci y npm audit --omit=dev terminan sin vulnerabilidades reportadas. Referencias: https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw y https://github.com/vercel/next.js/security/advisories/GHSA-p3m5-59mp-jv5r.
+
+### Validación de etapa 2 en Docker/Linux
+
+- ESLint aprobado con las dependencias actualizadas.
+- 19 pruebas de reglas aprobadas (12 de carrito y 7 de pagos).
+- 13 pruebas de integración aprobadas con PostgreSQL real en una base efímera, módulos/rutas reales y API de Mercado Pago simulada. Cubren migración de reservas previas, cobro cerrado, origen ajeno, precios manipulados, recuperación/idempotencia, aprobación, pendiente, rechazo, firma y datos de pago incorrectos, concurrencia, reversión de todo el carrito, reservas manuales, expiración, pagos tardíos/duplicados, reembolso, timeout, protección del admin y conciliación sin webhook.
+- La base efímera de pruebas fue eliminada; no quedan bases con prefijo bacano_pagos_test_.
+- Build de producción aprobado con Next.js 16.4.3, incluida verificación TypeScript.
+- Contenedor web local actualizado en http://127.0.0.1:3001. La migración se ejecutó correctamente y se comprobó que la cantidad y huella de reservas existentes no cambió.
+- Prueba HTTP aprobada: home y página de resultado responden; un retorno con status=approved no confirma; pedido ajeno devuelve 404 sin caché; mantenimiento sin secreto devuelve 401; administrador sin sesión redirige; checkout y webhook devuelven 503 mientras falten credenciales/activación.
+- Comprobación HTTP reproducible: node scripts/verificar-pagos.mjs (requiere cobro local deshabilitado).
+- Pendientes externos: credenciales, ID del vendedor, dominio HTTPS, secreto Webhook, cron y compras/notificaciones en el entorno real de prueba de Mercado Pago. No se realizaron cobros ni se activó producción.
+- Pendientes de producto: políticas definitivas de cancelación/facturación/anticipos y recorrido visual/manual en móvil y escritorio. El cobro completo y los 15 minutos son valores iniciales documentados.
+
+### Cierre de documentación
+
+- README.md actualizado con el estado real del proyecto, ejecución en Docker/EasyPanel, rutas y comandos de verificación.
+- PLAN-RESERVAS.md actualizado para distinguir implementación local completada de activación comercial pendiente.
+- PAGOS-MERCADOPAGO.md ampliado con orden de activación y mapa de endpoints.
+- Se mantiene explícita la diferencia entre pruebas locales con proveedor simulado y pruebas pendientes con Mercado Pago. No se activaron cobros con esta actualización de documentación.

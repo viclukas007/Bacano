@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import { episodios as semillaEpisodios } from "@/content/episodes";
 import { shows as semillaShows } from "@/content/shows";
+import { ESQUEMA_PAGOS } from "./pagos-estudio-esquema";
 
 /**
  * Conexión a Postgres y esquema.
@@ -116,13 +117,13 @@ const ESQUEMA = `
   CREATE INDEX IF NOT EXISTS reservas_desde ON reservas (desde);
 `;
 
-async function sembrar() {
-  const [{ n: programas }] = await sql<{ n: number }[]>`
+async function sembrar(conexion: Sql | postgres.TransactionSql) {
+  const [{ n: programas }] = await conexion<{ n: number }[]>`
     SELECT count(*)::int AS n FROM programas
   `;
   if (programas === 0) {
     for (const [orden, s] of semillaShows.entries()) {
-      await sql`
+      await conexion`
         INSERT INTO programas
           (slug, nombre, bajada, cadencia, modo, formatos, spotify_show_id,
            horario_vivo, fondo, tinta, secundario, orden)
@@ -134,12 +135,12 @@ async function sembrar() {
     }
   }
 
-  const [{ n: episodios }] = await sql<{ n: number }[]>`
+  const [{ n: episodios }] = await conexion<{ n: number }[]>`
     SELECT count(*)::int AS n FROM episodios
   `;
   if (episodios === 0) {
     for (const e of semillaEpisodios) {
-      await sql`
+      await conexion`
         INSERT INTO episodios
           (id, programa_slug, numero, titulo, detalle, fecha, duracion,
            youtube_id, spotify_episode_id, formatos, origen)
@@ -159,8 +160,12 @@ let lista: Promise<void> | undefined;
 /** Deja la base lista para usar. Se ejecuta una vez por proceso. */
 export function prepararBase(): Promise<void> {
   lista ??= (async () => {
-    await sql.unsafe(ESQUEMA);
-    await sembrar();
+    await sql.begin(async (tx) => {
+      await tx`SELECT pg_advisory_xact_lock(948321, 0)`;
+      await tx.unsafe(ESQUEMA);
+      await tx.unsafe(ESQUEMA_PAGOS);
+      await sembrar(tx);
+    });
   })().catch((error) => {
     // Si falló, que el próximo intento vuelva a probar.
     lista = undefined;

@@ -21,10 +21,30 @@ services:
       DATABASE_URL: postgres://bacano:${POSTGRES_PASSWORD:-bacano}@db:5432/bacano
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Falta ADMIN_PASSWORD en .env}
       SESSION_SECRET: ${SESSION_SECRET:?Falta SESSION_SECRET en .env}
+      APP_URL: ${APP_URL:-http://127.0.0.1:3001}
+      MERCADOPAGO_ENABLED: ${MERCADOPAGO_ENABLED:-false}
+      MERCADOPAGO_ENV: ${MERCADOPAGO_ENV:-test}
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:-}
+      MERCADOPAGO_COLLECTOR_ID: ${MERCADOPAGO_COLLECTOR_ID:-}
+      ESTUDIO_APARTADO_MINUTOS: ${ESTUDIO_APARTADO_MINUTOS:-15}
+      ESTUDIO_CRON_SECRET: ${ESTUDIO_CRON_SECRET:-}
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+
+  pruebas:
+    profiles: ["test"]
+    build:
+      context: .
+      target: pruebas
+    environment:
+      DATABASE_URL: postgres://bacano:${POSTGRES_PASSWORD:-bacano}@db:5432/bacano
+      PAGOS_TEST_ISOLATED: "true"
+    depends_on:
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:16-alpine

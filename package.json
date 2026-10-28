@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:estudio": "node --test tests/carrito-estudio.test.cjs"
+    "test:estudio": "node --test tests/carrito-estudio.test.cjs tests/pagos-estudio.test.cjs",
+    "test:pagos:integration": "node --test tests/pagos-postgres.test.cjs"
   },
   "dependencies": {
-    "next": "16.3.5",
+    "next": "16.4.3",
     "postgres": "^3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -21,7 +22,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.5",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

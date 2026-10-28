@@ -62,8 +62,8 @@ function Cantidad({ id, nombre, valor, cambiar, unidad }: {
   );
 }
 
-export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas }: {
-  hoy: string; ahora: string; lunes: string; ultimaFecha: string; reservas: Reserva[];
+export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas, pagoHabilitado, minutosApartado }: {
+  hoy: string; ahora: string; lunes: string; ultimaFecha: string; reservas: Reserva[]; pagoHabilitado: boolean; minutosApartado: number;
 }) {
   const carrito = useSyncExternalStore(suscribir, leer, snapshotServidor);
   const siguienteHora = Math.max(APERTURA, Number(ahora.slice(11, 13)) + 1);
@@ -77,6 +77,9 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas }: {
   const [aviso, setAviso] = useState("");
   const [error, setError] = useState("");
   const [contacto, setContacto] = useState({ nombre: "", correo: "", telefono: "", notas: "" });
+  const [pagando, setPagando] = useState(false);
+  const intento = useRef<{ clave: string; contenido: string } | null>(null);
+  const enviando = useRef(false);
   const titulo = useRef<HTMLHeadingElement>(null);
   const nombre = useRef<HTMLInputElement>(null);
   const total = carrito.reduce((suma, s) => suma + totalSesion(s), 0);
@@ -111,6 +114,25 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas }: {
   function continuar() {
     if (editando) { setError("Guarda los cambios de la sesión antes de continuar."); titulo.current?.focus(); return; }
     if (revisarCarrito()) { irA("datos"); requestAnimationFrame(() => nombre.current?.focus()); }
+  }
+
+  async function pagar() {
+    if (enviando.current || !revisarCarrito()) return;
+    enviando.current = true; setPagando(true); setError("");
+    const contenido = JSON.stringify({ contacto, sesiones: carrito });
+    if (!intento.current || intento.current.contenido !== contenido) {
+      const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+      const hex = Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+      intento.current = { contenido, clave: `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}` };
+    }
+    try {
+      const r = await fetch("/api/estudio/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contacto, sesiones: carrito, clave: intento.current.clave }) });
+      const resultado = await r.json();
+      if (!r.ok) { if (r.status === 410) intento.current = null; throw new Error(resultado.error ?? "No pudimos iniciar el pago."); }
+      window.location.assign(resultado.url);
+    } catch (error) { setError(error instanceof Error ? error.message : "No pudimos iniciar el pago. Intenta de nuevo."); }
+    finally { enviando.current = false; setPagando(false); }
   }
 
   return (
@@ -220,11 +242,11 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas }: {
                 {contacto.notas && <div className="sm:col-span-2"><dt className="text-gris">Sobre tu podcast</dt><dd className="mt-1 whitespace-pre-wrap break-words text-white">{contacto.notas}</dd></div>}
               </dl>
               <div className="border-2 border-cian/40 bg-cian/5 p-5 sm:p-6">
-                <span className="mb-3 inline-block border border-cian/40 px-2 py-1 text-[11px] uppercase tracking-widest text-cian">Próximamente</span>
+                <span className="mb-3 inline-block border border-cian/40 px-2 py-1 text-[11px] uppercase tracking-widest text-cian">{pagoHabilitado ? "Pago seguro" : "Próximamente"}</span>
                 <h4 className="display text-2xl text-white">Pago con Mercado Pago</h4>
-                <p className="my-4 text-sm leading-relaxed text-gris">Estamos preparando el pago en línea. Por ahora puedes armar tu carrito y revisar el total; los horarios todavía no están apartados.</p>
-                <button type="button" disabled aria-describedby="pago-estudio-pendiente" className={PRIMARIO}>Pagar {pesos(total)} con Mercado Pago</button>
-                <p id="pago-estudio-pendiente" className="mt-3 text-xs text-gris">El pago en línea aún no está habilitado.</p>
+                <p className="my-4 text-sm leading-relaxed text-gris">{pagoHabilitado ? `Al continuar, comprobaremos la disponibilidad y apartaremos tus horarios hasta ${minutosApartado} minutos mientras pagas el total en Mercado Pago. Si la sesión empieza antes, el apartado vence a esa hora.` : "Estamos preparando el pago en línea. Por ahora puedes armar tu carrito y revisar el total; los horarios todavía no están apartados."}</p>
+                <button type="button" disabled={!pagoHabilitado || pagando || !carrito.length} onClick={() => void pagar()} aria-describedby="pago-estudio-pendiente" className={PRIMARIO}>{pagando ? "Preparando tu pago…" : `Pagar ${pesos(total)} con Mercado Pago`}</button>
+                <p id="pago-estudio-pendiente" className="mt-3 text-xs text-gris">{pagoHabilitado ? "Tu reserva se confirma después de verificar el pago. Tus datos se enviarán para gestionar el pedido." : "El pago en línea aún no está habilitado."}</p>
               </div>
               <button type="button" className={`${SECUNDARIO} mt-4 w-full`} onClick={() => irA("datos")}>Corregir mis datos</button>
               <button type="button" className={`${SECUNDARIO} mt-3 w-full`} onClick={() => irA("sesiones")}>Volver a mis sesiones</button>

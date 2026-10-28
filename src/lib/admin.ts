@@ -9,6 +9,8 @@ import {
 import { prepararBase, sql } from "@/lib/db";
 import type { Reserva, TipoReserva } from "@/lib/estudio";
 import type { Episodio, Show } from "@/lib/types";
+import { bloquearEstudio, expirarApartadosTx, limpiarApartados } from "./pagos-estudio";
+import { ErrorPago } from "./pagos-estudio-reglas";
 
 /**
  * Consultas del admin. A diferencia de `content.ts`, van directo a la base
@@ -175,6 +177,8 @@ interface FilaReserva {
   desde: string;
   hasta: string;
   notas: string | null;
+  pedido_id: string | null;
+  estado: "apartado" | "confirmada";
 }
 
 // Las horas se leen como texto para que el driver no las convierta a `Date`
@@ -183,7 +187,7 @@ const columnasReserva = () => sql`
   id, quien, tipo,
   to_char(desde, 'YYYY-MM-DD HH24:MI') AS desde,
   to_char(hasta, 'YYYY-MM-DD HH24:MI') AS hasta,
-  notas
+  notas, pedido_id, estado
 `;
 
 function aReserva(f: FilaReserva): Reserva {
@@ -194,6 +198,8 @@ function aReserva(f: FilaReserva): Reserva {
     desde: f.desde,
     hasta: f.hasta,
     notas: f.notas ?? undefined,
+    pedidoId: f.pedido_id ?? undefined,
+    estado: f.estado,
   };
 }
 
@@ -203,6 +209,7 @@ export async function listarReservas(
   hasta: string,
 ): Promise<Reserva[]> {
   await abrir();
+  await limpiarApartados();
   const filas = await sql<FilaReserva[]>`
     SELECT ${columnasReserva()} FROM reservas
     WHERE desde < ${hasta}::timestamp AND hasta > ${desde}::timestamp
@@ -229,6 +236,7 @@ export async function choqueReserva(
   ignorarId?: number,
 ): Promise<Reserva | undefined> {
   await abrir();
+  await limpiarApartados();
   const [fila] = await sql<FilaReserva[]>`
     SELECT ${columnasReserva()} FROM reservas
     WHERE desde < ${hasta}::timestamp AND hasta > ${desde}::timestamp
@@ -255,17 +263,26 @@ export async function guardarReserva(
     notas: datos.notas ?? null,
   };
 
-  if (id) {
-    await sql`
-      UPDATE reservas SET ${sql(fila)}, actualizado_en = now()
-      WHERE id = ${id}
-    `;
-  } else {
-    await sql`INSERT INTO reservas ${sql(fila)}`;
-  }
+  await sql.begin(async tx => {
+    await bloquearEstudio(tx);
+    await expirarApartadosTx(tx);
+    if (id) {
+      const [anterior] = await tx`SELECT pedido_id FROM reservas WHERE id = ${id}`;
+      if (anterior?.pedido_id) throw new ErrorPago("Esta reserva está vinculada a un pago. Revísala en Pedidos.");
+      await tx`UPDATE reservas SET ${tx(fila)}, actualizado_en = now() WHERE id = ${id}`;
+    } else {
+      await tx`INSERT INTO reservas ${tx(fila)}`;
+    }
+  });
 }
 
 export async function eliminarReserva(id: number): Promise<void> {
   await abrir();
-  await sql`DELETE FROM reservas WHERE id = ${id}`;
+  await sql.begin(async tx => {
+    await bloquearEstudio(tx);
+    await expirarApartadosTx(tx);
+    const [reserva] = await tx`SELECT pedido_id FROM reservas WHERE id = ${id}`;
+    if (reserva?.pedido_id) throw new ErrorPago("Esta reserva está vinculada a un pago. Revísala en Pedidos.");
+    await tx`DELETE FROM reservas WHERE id = ${id}`;
+  });
 }

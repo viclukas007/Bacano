@@ -11,6 +11,7 @@ const SECCIONES = [
   { href: "/admin", etiqueta: "Episodios" },
   { href: "/admin/programas", etiqueta: "Programas" },
   { href: "/admin/estudio", etiqueta: "Estudio" },
+  { href: "/admin/pedidos", etiqueta: "Pedidos" },
   { href: "/admin/clave", etiqueta: "Clave" },
 ];
 

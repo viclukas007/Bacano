@@ -13,6 +13,11 @@ FROM base AS deps
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# Pruebas de reglas y PostgreSQL sobre una base efímera.
+FROM deps AS pruebas
+COPY . .
+CMD ["sh", "-c", "npm run test:estudio && npm run test:pagos:integration"]
+
 # --- Build ------------------------------------------------------------------
 FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1

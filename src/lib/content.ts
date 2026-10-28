@@ -190,15 +190,14 @@ async function cargarOcupacion(desde: string, hasta: string): Promise<Reserva[]>
       to_char(hasta, 'YYYY-MM-DD HH24:MI') AS hasta
     FROM reservas
     WHERE desde < ${hasta}::timestamp AND hasta > ${desde}::timestamp
+      AND (estado = 'confirmada' OR expira_en > now())
     ORDER BY desde
   `;
   return filas.map((f) => ({ ...f }));
 }
 
-const getOcupacion = unstable_cache(cargarOcupacion, ["estudio"], {
-  tags: [TAG_ESTUDIO],
-  revalidate: REVISION,
-});
+// Los apartados vencen por reloj: su disponibilidad no debe depender de una caché.
+const getOcupacion = cargarOcupacion;
 
 /** Quién ocupa el estudio la semana que empieza en `lunes`, para el sitio. */
 export async function getOcupacionEstudio(lunes: string): Promise<Reserva[]> {

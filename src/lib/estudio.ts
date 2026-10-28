@@ -19,6 +19,8 @@ export type TipoReserva = "renta" | "propio";
 
 export interface Reserva {
   id: number;
+  pedidoId?: string;
+  estado?: "apartado" | "confirmada";
   /** Quién ocupa el estudio: el programa del canal o el cliente que renta. */
   quien: string;
   tipo: TipoReserva;

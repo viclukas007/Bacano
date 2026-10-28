@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { obtenerReserva } from "@/lib/admin";
 import { diaDe, horaDe } from "@/lib/estudio";
 import { ReservaForm } from "@/app/admin/_ui/reserva-form";
@@ -12,6 +12,7 @@ export default async function EditarReserva({
   if (!/^\d+$/.test(id)) notFound();
   const reserva = await obtenerReserva(Number(id));
   if (!reserva) notFound();
+  if (reserva.pedidoId) redirect(`/admin/pedidos#${reserva.pedidoId}`);
 
   return (
     <>

@@ -117,7 +117,7 @@ export function Semana({
                 return (
                   <Link
                     key={f.reserva.id}
-                    href={`/admin/estudio/${f.reserva.id}`}
+                    href={f.reserva.pedidoId ? `/admin/pedidos#${f.reserva.pedidoId}` : `/admin/estudio/${f.reserva.id}`}
                     className={`absolute inset-x-0.5 z-10 overflow-hidden px-1.5 py-1 text-[12px] leading-tight transition-colors ${
                       ESTILO_TIPO[f.reserva.tipo]
                     }`}
@@ -138,7 +138,7 @@ export function Semana({
                     ) : (
                       <>
                         <span className="display block text-[12px] tracking-[0.04em]">
-                          {f.reserva.quien}
+                          {f.reserva.quien}{f.reserva.estado === "apartado" ? " · apartado" : ""}
                         </span>
                         <span className="opacity-80">{rangoHoras(f.reserva)}</span>
                       </>
@@ -184,13 +184,13 @@ export function ListaSemana({ reservas }: { reservas: Reserva[] }) {
               <td className="whitespace-nowrap px-4 py-3">{diaLargo(diaDe(r.desde))}</td>
               <td className="whitespace-nowrap px-4 py-3">{rangoHoras(r)}</td>
               <td className="px-4 py-3">{r.quien}</td>
-              <td className="px-4 py-3 text-gris">{NOMBRE_TIPO[r.tipo]}</td>
+              <td className="px-4 py-3 text-gris">{r.estado === "apartado" ? "Apartado de pago" : NOMBRE_TIPO[r.tipo]}</td>
               <td className="max-w-[320px] truncate px-4 py-3 text-gris" title={r.notas}>
                 {r.notas}
               </td>
               <td className="px-4 py-3 text-right">
-                <Link href={`/admin/estudio/${r.id}`} className="text-cian hover:underline">
-                  Editar
+                <Link href={r.pedidoId ? `/admin/pedidos#${r.pedidoId}` : `/admin/estudio/${r.id}`} className="text-cian hover:underline">
+                  {r.pedidoId ? "Ver pedido" : "Editar"}
                 </Link>
               </td>
             </tr>

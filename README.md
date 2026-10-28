@@ -1,48 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bacano Web
 
-## Getting Started
+Sitio de Bacano Media con programas, episodios, calendario y renta del estudio. Usa Next.js 16.4.3, React y PostgreSQL. El despliegue del VPS se administra desde EasyPanel; Docker Compose reproduce el entorno en local.
 
-First, run the development server:
+## Estado actual: 2026-10-25
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+El carrito y el backend de reservas/pagos están implementados. Se reutiliza la base PostgreSQL existente y su tabla `reservas`, con una migración aditiva para pedidos, sesiones, conceptos y pagos.
+
+**Mercado Pago permanece deshabilitado.** Falta configurar credenciales, vendedor, dominio HTTPS, Webhook y cron, y probar el recorrido en el entorno real de prueba de Mercado Pago antes de activar cobros.
+
+La validación local aprobó 32 pruebas (19 de reglas y 13 de integración), ESLint, TypeScript, build de producción y comprobaciones HTTP. Las pruebas de integración usan PostgreSQL real en una base temporal y simulan la API de Mercado Pago. No se realizaron pagos reales. Sigue pendiente la revisión visual/manual en móvil y escritorio.
+
+## Ejecutar en local
+
+En la primera instalación, copiar `.env.example` a `.env` si todavía no existe y configurar las claves de administrador, sesión y PostgreSQL. Las variables de Mercado Pago pueden quedar vacías y `MERCADOPAGO_ENABLED=false`.
+
+```powershell
+docker compose up -d --build web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Sitio y carrito: http://127.0.0.1:3001/#estudio.
+- Administrador: http://127.0.0.1:3001/admin.
+- Pedidos: http://127.0.0.1:3001/admin/pedidos (requiere sesión).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+El PostgreSQL local conserva sus datos en el volumen `bacano-db`. No eliminar el volumen al actualizar el sitio. En EasyPanel, cargar las variables de entorno en el servicio web y usar la conexión al PostgreSQL existente.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Para desarrollar fuera de Docker, ejecutar `npm ci` y `npm run dev` con `DATABASE_URL` y las demás variables configuradas; el servidor de desarrollo usa http://localhost:3000. La compilación sobre la unidad E: presentó limitaciones de archivos/junctions en Windows, por lo que el build de referencia se verifica en Docker/Linux.
 
-## Learn More
+## Reservas y pagos
 
-To learn more about Next.js, take a look at the following resources:
+El visitante configura sesiones entre las 08:00 y las 21:00, hora de Mérida, añade servicios y revisa sus datos y el total. El carrito se conserva en el navegador sin guardar los datos de contacto en localStorage.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Con el pago habilitado, el servidor valida el carrito, recalcula precios y crea un pedido con apartado temporal. El valor inicial es cobro completo y hasta 15 minutos de apartado, sujeto a la política comercial definitiva. Solo un pago consultado y verificado en Mercado Pago confirma las reservas. Los pagos tardíos o duplicados, reembolsos y contracargos requieren revisión administrativa.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Parte | Archivo o ruta |
+| --- | --- |
+| Catálogo y cálculos | `src/lib/carrito-estudio.ts` |
+| Configurador y carrito | `src/components/carrito-estudio.tsx` |
+| Validación del servidor y firma | `src/lib/pagos-estudio-reglas.ts` |
+| Pedidos, apartados y confirmación | `src/lib/pagos-estudio.ts` |
+| Cliente de Mercado Pago | `src/lib/mercado-pago.ts` |
+| Esquema aditivo de pagos | `src/lib/pagos-estudio-esquema.ts` |
+| Resultado del pedido | `/estudio/pago?pedido=<uuid>` |
+| Administración de pedidos | `/admin/pedidos` |
 
-## Deploy on Vercel
+## Validación
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```powershell
+docker compose --profile test run --build --rm pruebas
+docker compose build web
+docker compose up -d web
+node scripts/verificar-pagos.mjs
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El servicio `pruebas` crea y elimina una base temporal: no prueba escenarios sobre los datos del sitio. `verificar-pagos.mjs` comprueba el servidor local con el cobro deshabilitado y no crea pedidos. Para ejecutar lint con las dependencias locales actualizadas: `npm run lint`; para las 19 pruebas de reglas: `npm run test:estudio`.
 
-## Carrito de renta del estudio
+## Documentación
 
-El frontend está en la sección `#estudio` de la página principal. Permite configurar sesiones entre las 08:00 y las 21:00 (hora de Mérida), agregar servicios, editar el carrito y revisar los datos de contacto antes del pago.
-
-- [Plan y alcance](PLAN-RESERVAS.md).
-- [Bitácora de ejecución y validaciones](AVANCES-RESERVAS.md).
-- Catálogo y cálculos: `src/lib/carrito-estudio.ts`.
-- Configurador y carrito: `src/components/carrito-estudio.tsx`.
-- Pruebas: `npm run test:estudio`.
-
-El carrito se conserva localmente; los datos de contacto no se guardan ni se envían. El pago con Mercado Pago está pendiente de la segunda etapa: no se cobran pagos ni se crean reservas desde este frontend.
+- [Plan de reservas, implementación y pendientes](PLAN-RESERVAS.md).
+- [Bitácora y resultados de validación](AVANCES-RESERVAS.md).
+- [Configuración y activación de Mercado Pago](PAGOS-MERCADOPAGO.md).
