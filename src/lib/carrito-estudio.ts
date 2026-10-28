@@ -2,14 +2,15 @@ import { fechaValida, horaValida, minutos, sumarHoras, type Reserva } from "./es
 
 /** Catálogo del frontend. El backend deberá usar precios propios y recalcular. */
 export const TARIFAS = {
-  estudio: 480,
-  tecnico: 250,
-  transmision: 100,
-  operadorExtra: 150,
-  edicion: 1500,
-  clips: 1000,
+  primeraHora: 1100,
+  horaExtra: 700,
+  transmision: 200,
+  edicion: 3000,
+  reels: 1000,
 } as const;
 
+/** v2 desde los precios de oct-2026: los carritos v1 traen servicios que ya no existen. */
+export const CLAVE_CARRITO = "bacano:carrito-estudio:v2";
 export const APERTURA = 8;
 export const CIERRE = 21;
 export const MAX_UNIDADES = 20;
@@ -19,11 +20,9 @@ export interface SesionEstudio {
   fecha: string;
   inicio: string;
   horas: number;
-  tecnico: boolean;
   transmision: boolean;
-  operadoresExtra: number;
   ediciones: number;
-  paquetesClips: number;
+  paquetesReels: number;
 }
 
 export type ConfiguracionEstudio = Omit<SesionEstudio, "id">;
@@ -44,12 +43,11 @@ export const finSesion = (sesion: ConfiguracionEstudio) => sumarHoras(sesion.ini
 
 export function conceptosSesion(s: ConfiguracionEstudio): ConceptoEstudio[] {
   const filas: [string, number, string, number][] = [
-    ["Renta del estudio", s.horas, "h", TARIFAS.estudio],
-    ["Técnico/operador", s.tecnico ? s.horas : 0, "h", TARIFAS.tecnico],
-    ["Transmisión en vivo", s.transmision ? s.horas : 0, "h", TARIFAS.transmision],
-    ["Operador extra", s.operadoresExtra * s.horas, "h de operador", TARIFAS.operadorExtra],
-    ["Edición de episodio", s.ediciones, "episodio(s)", TARIFAS.edicion],
-    ["Paquete de 10 clips", s.paquetesClips, "paquete(s)", TARIFAS.clips],
+    ["Renta del estudio", 1, "h", TARIFAS.primeraHora],
+    ["Hora extra de estudio", s.horas - 1, "h", TARIFAS.horaExtra],
+    ["Transmisión en vivo", s.transmision ? 1 : 0, "sesión", TARIFAS.transmision],
+    ["Edición de programa", s.ediciones, "programa(s)", TARIFAS.edicion],
+    ["Paquete de 4 reels", s.paquetesReels, "paquete(s)", TARIFAS.reels],
   ];
   return filas.filter(([, cantidad]) => cantidad > 0).map(([nombre, cantidad, unidad, precio]) => ({
     nombre, cantidad, unidad, precio, subtotal: cantidad * precio,
@@ -73,10 +71,10 @@ export function validarSesion(
   if (!Number.isInteger(s.horas) || s.horas < 1 || inicio < APERTURA || inicio + s.horas > CIERRE) {
     return "La sesión debe estar entre las 08:00 y las 21:00 y durar al menos una hora.";
   }
-  if (![s.operadoresExtra, s.ediciones, s.paquetesClips].every((n) => Number.isInteger(n) && n >= 0 && n <= MAX_UNIDADES)) {
+  if (![s.ediciones, s.paquetesReels].every((n) => Number.isInteger(n) && n >= 0 && n <= MAX_UNIDADES)) {
     return `Las cantidades deben estar entre 0 y ${MAX_UNIDADES}.`;
   }
-  if (typeof s.tecnico !== "boolean" || typeof s.transmision !== "boolean") return "Revisa los servicios seleccionados.";
+  if (typeof s.transmision !== "boolean") return "Revisa los servicios seleccionados.";
   const desde = `${s.fecha} ${s.inicio}`;
   const hasta = `${s.fecha} ${finSesion(s)}`;
   if (opciones.ahora && desde <= opciones.ahora) return "Ese horario ya pasó. Elige una hora posterior.";
@@ -87,8 +85,12 @@ export function validarSesion(
   return null;
 }
 
-/** Recuperar datos locales no significa confiar en ellos ni reservar el horario. */
-export function leerCarrito(texto: string | null): SesionEstudio[] {
+/**
+ * Recuperar datos locales no significa confiar en ellos ni reservar el horario.
+ * Con `ahora` se descartan las sesiones que ya empezaron: no se pueden pagar y
+ * solo inflaban el total de alguien que vuelve días después.
+ */
+export function leerCarrito(texto: string | null, ahora?: string): SesionEstudio[] {
   try {
     const datos: unknown = JSON.parse(texto ?? "[]");
     if (!Array.isArray(datos) || datos.length > 50) return [];
@@ -98,7 +100,7 @@ export function leerCarrito(texto: string | null): SesionEstudio[] {
       const s = dato as SesionEstudio;
       if (typeof s.id !== "string" || !s.id || ids.has(s.id)) return false;
       if (typeof s.fecha !== "string" || typeof s.inicio !== "string") return false;
-      if (validarSesion(s, { hoy: "2000-01-01", ultimaFecha: "9999-12-31", reservas: [], carrito: [] })) return false;
+      if (validarSesion(s, { hoy: ahora?.slice(0, 10) ?? "2000-01-01", ultimaFecha: "9999-12-31", ahora, reservas: [], carrito: [] })) return false;
       ids.add(s.id);
       return true;
     });

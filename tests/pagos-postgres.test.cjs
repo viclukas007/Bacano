@@ -28,7 +28,7 @@ let db, servicio, checkout, webhook, estadoRoute, admin;
 const config = { token: "token-falso-solo-tests", secreto: "secreto-falso-tests", vendedor: "123", appUrl: "https://bacano.example", produccion: false, minutos: 15 };
 const contacto = { nombre: "Cliente prueba", correo: "cliente@example.com", telefono: "+52 999 123 4567", notas: "Integración" };
 let fecha;
-function sesion(inicio = "08:00", cambio = {}) { return { fecha, inicio, horas: 1, tecnico: false, transmision: false, operadoresExtra: 0, ediciones: 0, paquetesClips: 0, ...cambio }; }
+function sesion(inicio = "08:00", cambio = {}) { return { fecha, inicio, horas: 1, transmision: false, ediciones: 0, paquetesReels: 0, ...cambio }; }
 function datos(sesiones) { return validarPedido({ contacto, sesiones }); }
 function pago(pedido, cambio = {}) {
   return { id: String(Math.floor(Math.random() * 1e12)), status: "approved", status_detail: "accredited", external_reference: pedido.id, transaction_amount: pedido.total_centavos / 100, currency_id: "MXN", collector_id: 123, live_mode: false, date_approved: new Date().toISOString(), date_last_updated: new Date().toISOString(), ...cambio };
@@ -75,7 +75,7 @@ before(async () => {
       preferencias++;
       const body = JSON.parse(opciones.body);
       assert.equal(body.items[0].currency_id, "MXN");
-      assert.equal(body.items[0].unit_price, 480);
+      assert.equal(body.items[0].unit_price, 1100);
       assert.match(body.notification_url, /\/api\/mercadopago\/webhook$/);
       assert.equal(body.expires, true);
       if (falloPreferencia) throw new Error("Timeout simulado");
@@ -118,9 +118,9 @@ test("checkout HTTP crea un solo pedido/preferencia al repetir el intento y cong
   const recuperado = await servicio.iniciarCheckout(datos([sesion()]), propietario, randomUUID(), config);
   assert.equal(recuperado.pedido, resultado.pedido); assert.equal(preferencias, 1);
   const [pedido] = await db.sql`SELECT * FROM estudio_pedidos WHERE id = ${resultado.pedido}`;
-  assert.equal(pedido.total_centavos, 48000);
+  assert.equal(pedido.total_centavos, 110000);
   const [{ conceptos }] = await db.sql`SELECT conceptos FROM estudio_pedido_sesiones WHERE pedido_id = ${pedido.id}`;
-  assert.equal(conceptos[0].precioCentavos, 48000);
+  assert.equal(conceptos[0].precioCentavos, 110000);
   const ajeno = await estadoRoute.GET(new NextRequest(`${config.appUrl}/api/estudio/pedidos/${pedido.id}`), { params: Promise.resolve({ id: pedido.id }) });
   assert.equal(ajeno.status, 404);
   const p = pago(pedido);
@@ -182,8 +182,8 @@ test("un segundo pago aprobado y los reembolsos requieren revisión sin duplicar
   await enviarWebhook(pago(pedido));
   const [r] = await db.sql`SELECT estado FROM estudio_pedidos WHERE id = ${pedido.id}`; assert.equal(r.estado, "revision");
   const [{ n }] = await db.sql`SELECT count(*)::int AS n FROM reservas WHERE pedido_id = ${pedido.id}`; assert.equal(n, 1);
-  await enviarWebhook({ ...p, status: "refunded", transaction_amount_refunded: 480, date_last_updated: new Date(Date.now()+1000).toISOString() });
-  const [guardado] = await db.sql`SELECT reembolsado_centavos FROM estudio_pagos WHERE id = ${p.id}`; assert.equal(guardado.reembolsado_centavos, 48000);
+  await enviarWebhook({ ...p, status: "refunded", transaction_amount_refunded: 1100, date_last_updated: new Date(Date.now()+1000).toISOString() });
+  const [guardado] = await db.sql`SELECT reembolsado_centavos FROM estudio_pagos WHERE id = ${p.id}`; assert.equal(guardado.reembolsado_centavos, 110000);
 });
 test("el timeout al crear preferencia conserva el pedido; reintentar no duplica apartados", async () => {
   const propietario = randomBytes(32).toString("hex"); const clave = randomUUID(); const d = datos([sesion("15:00")]);

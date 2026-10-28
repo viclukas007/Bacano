@@ -14,15 +14,14 @@ Horario: 08:00 a 21:00, hora de Mérida. Sesiones de horas completas desde una h
 
 | Concepto | Precio MXN | Criterio |
 | --- | ---: | --- |
-| Renta del estudio | $480 | Por hora, obligatorio |
-| Técnico/operador | $250 | Por hora, opcional |
+| Renta del estudio | $1,100 | Primera hora, obligatorio |
+| Hora extra de estudio | $700 | Cada hora después de la primera |
 | Video multicámara | Incluido | Con la renta |
-| Transmisión en vivo | $100 | Por hora, opcional |
-| Operador extra | $150 | Por hora y operador |
-| Edición de episodio de 40 a 60 minutos | $1,500 | Por episodio |
-| Paquete de 10 clips | $1,000 | Por paquete |
+| Transmisión en vivo | $200 | Por sesión, opcional |
+| Edición de programa de 40 a 60 minutos | $3,000 | Por programa |
+| Paquete de 4 reels | $1,000 | Por paquete |
 
-La transmisión se considera por hora; edición y clips por unidad, independientemente de las horas de estudio. Una hora con una unidad de cada servicio suma $3,480 MXN.
+Precios vigentes desde el 28-oct-2026 (antes: $480/h de estudio, técnico $250/h, operador extra $150/h, transmisión $100/h, edición $1,500 y 10 clips por $1,000). La transmisión se cobra una vez por sesión; edición y reels por unidad, independientemente de las horas de estudio. Una hora con una unidad de cada servicio suma $5,300 MXN.
 
 ## Etapa 1: frontend
 
@@ -82,7 +81,7 @@ El visitante puede armar su carrito y revisar contacto y total, con la identidad
 
 ## Decisiones de esta entrega
 
-- El carrito admite hasta 50 sesiones; las cantidades de operadores extra, ediciones y paquetes se limitan a 20 por sesión.
+- El carrito admite hasta 50 sesiones; las cantidades de ediciones y paquetes de reels se limitan a 20 por sesión.
 - El calendario consultado aporta únicamente la ocupación de la semana visible; fuera de ella se indica que hay que cambiar de semana para consultar. El frontend no garantiza disponibilidad.
 - Todos los precios y cantidades se validan en el backend antes de crear un pedido o iniciar un pago.
 - La compilación en Windows sobre E: encontró limitaciones del sistema de archivos; se verificó la producción mediante el Dockerfile existente en Linux.

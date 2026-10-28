@@ -4,12 +4,11 @@ import { useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { IconFlecha } from "@/components/icons";
 import { diaLargo, sumarDias, type Reserva } from "@/lib/estudio";
 import {
-  APERTURA, CIERRE, MAX_UNIDADES, TARIFAS, conceptosSesion, finSesion,
+  APERTURA, CIERRE, CLAVE_CARRITO as CLAVE, MAX_UNIDADES, TARIFAS, conceptosSesion, finSesion,
   horaEtiqueta, leerCarrito, pesos, totalSesion, validarSesion,
   type ConfiguracionEstudio, type SesionEstudio,
 } from "@/lib/carrito-estudio";
 
-const CLAVE = "bacano:carrito-estudio:v1";
 const EVENTO = "bacano:carrito-estudio";
 const VACIO: SesionEstudio[] = [];
 let memoria: SesionEstudio[] = VACIO;
@@ -20,7 +19,7 @@ function leer() {
   if (soloMemoria) return memoria;
   try {
     const texto = window.localStorage.getItem(CLAVE);
-    if (texto !== ultimoTexto) { memoria = leerCarrito(texto); ultimoTexto = texto; }
+    if (texto !== ultimoTexto) { memoria = leerCarrito(texto, ahoraMerida()); ultimoTexto = texto; }
   } catch { /* El carrito también funciona si el navegador bloquea localStorage. */ }
   return memoria;
 }
@@ -70,7 +69,7 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas, pagoH
   const [sesion, setSesion] = useState<ConfiguracionEstudio>({
     fecha: siguienteHora >= CIERRE ? sumarDias(hoy, 1) : hoy,
     inicio: horaEtiqueta(siguienteHora >= CIERRE ? APERTURA : siguienteHora), horas: 1,
-    tecnico: false, transmision: false, operadoresExtra: 0, ediciones: 0, paquetesClips: 0,
+    transmision: false, ediciones: 0, paquetesReels: 0,
   });
   const [editando, setEditando] = useState<string | null>(null);
   const [paso, setPaso] = useState<"sesiones" | "datos" | "pago">("sesiones");
@@ -175,7 +174,10 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas, pagoH
 
               <div className="my-6 flex flex-wrap items-center justify-between gap-4 border-l-4 border-cian bg-cian/5 p-4">
                 <div><p className="font-bold text-white">Renta del estudio</p><p className="mt-1 text-sm text-gris">Video multicámara incluido</p></div>
-                <p className="text-right"><span className="display text-2xl text-cian">{pesos(TARIFAS.estudio)}</span><span className="ml-1 text-sm text-gris">/ hora</span></p>
+                <div className="text-right">
+                  <p><span className="display text-2xl text-cian">{pesos(TARIFAS.primeraHora)}</span><span className="ml-1 text-sm text-gris">primera hora</span></p>
+                  <p className="mt-1 text-sm text-white">{pesos(TARIFAS.horaExtra)} <span className="text-gris">cada hora extra</span></p>
+                </div>
               </div>
 
               <fieldset>
@@ -183,21 +185,19 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas, pagoH
                 <p className="mb-3 text-sm text-gris">Servicios opcionales para tu grabación.</p>
                 <div className="divide-y divide-borde">
                   {([
-                    ["tecnico", "Técnico/operador", "Una persona a cargo de tu grabación.", TARIFAS.tecnico],
                     ["transmision", "Transmisión en vivo", "Lleva tu episodio al aire mientras grabas.", TARIFAS.transmision],
                   ] as const).map(([clave, etiqueta, descripcion, precio]) => (
                     <label key={clave} className="flex cursor-pointer items-start gap-3 py-4">
                       <input type="checkbox" checked={sesion[clave]} onChange={(e) => cambiar({ [clave]: e.target.checked })} className="mt-1 size-5 shrink-0 accent-cian" />
                       <span className="flex min-w-0 flex-1 flex-wrap justify-between gap-x-4 gap-y-1">
                         <span><span className="block font-medium text-white">{etiqueta}</span><span className="mt-1 block text-xs leading-relaxed text-gris">{descripcion}</span></span>
-                        <span className="shrink-0 text-sm text-white">{pesos(precio)} <span className="text-gris">/ hora</span></span>
+                        <span className="shrink-0 text-sm text-white">{pesos(precio)} <span className="text-gris">/ sesión</span></span>
                       </span>
                     </label>
                   ))}
                   {([
-                    ["operadoresExtra", "Operador extra", "Por operador y por cada hora de estudio.", TARIFAS.operadorExtra, "operador extra", "/ hora"],
-                    ["ediciones", "Edición de episodio", "Un episodio de 40 a 60 minutos por unidad.", TARIFAS.edicion, "edición", "/ episodio"],
-                    ["paquetesClips", "Paquete de 10 clips", "10 clips por paquete. Se cobra por paquete.", TARIFAS.clips, "paquete de clips", "/ paquete"],
+                    ["ediciones", "Edición de programa", "Un programa de 40 a 60 minutos por unidad.", TARIFAS.edicion, "edición", "/ programa"],
+                    ["paquetesReels", "Paquete de 4 reels", "4 reels por paquete. Se cobra por paquete.", TARIFAS.reels, "paquete de reels", "/ paquete"],
                   ] as const).map(([clave, etiqueta, descripcion, precio, unidad, tarifa]) => (
                     <div key={clave} className="flex flex-wrap items-center justify-between gap-3 py-4">
                       <label htmlFor={`servicio-${clave}`} className="min-w-0 flex-1 basis-48"><span className="block font-medium text-white">{etiqueta}</span><span className="mt-1 block text-xs leading-relaxed text-gris">{descripcion}</span><span className="mt-2 block text-sm text-white">{pesos(precio)} <span className="text-gris">{tarifa}</span></span></label>
@@ -259,7 +259,7 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas, pagoH
         <aside aria-label="Carrito de estudio" className="min-w-0 border-2 border-cian bg-carbon xl:sticky xl:top-24">
           <div className="flex items-center justify-between gap-3 border-b border-borde p-5"><h3 className="display text-[28px] text-white">Tu carrito</h3><span className="flex size-8 items-center justify-center bg-cian text-sm font-bold text-tinta" aria-label={`${carrito.length} sesiones`}>{carrito.length}</span></div>
           {!carrito.length ? (
-            <div className="px-5 py-10"><p className="display mb-3 text-2xl text-white">Haz espacio para tu voz.</p><p className="text-sm leading-relaxed text-gris">Elige tus horas y servicios y agrega tu primera sesión.</p><p className="mt-5 text-sm text-cian">Desde {pesos(TARIFAS.estudio)} MXN / hora</p></div>
+            <div className="px-5 py-10"><p className="display mb-3 text-2xl text-white">Haz espacio para tu voz.</p><p className="text-sm leading-relaxed text-gris">Elige tus horas y servicios y agrega tu primera sesión.</p><p className="mt-5 text-sm text-cian">Desde {pesos(TARIFAS.primeraHora)} MXN la primera hora</p></div>
           ) : (
             <ul className="max-h-[65vh] divide-y divide-borde overflow-y-auto">
               {carrito.map((s, i) => (

@@ -7,26 +7,26 @@ const { validarPedido, validarPagoMP, firmaWebhookValida } = require("../src/lib
 const { configuracionPago } = require("../src/lib/mercado-pago.ts");
 const ahora = new Date("2026-10-25T18:00:00Z");
 const contacto = { nombre: "Cliente de prueba", correo: "CLIENTE@example.com", telefono: "+52 999 123 4567", notas: "Podcast" };
-const sesion = { fecha: "2026-11-02", inicio: "08:00", horas: 1, tecnico: false, transmision: false, operadoresExtra: 0, ediciones: 0, paquetesClips: 0 };
+const sesion = { fecha: "2026-11-02", inicio: "08:00", horas: 1, transmision: false, ediciones: 0, paquetesReels: 0 };
 test("el servidor ignora precios y totales manipulados y congela los conceptos", () => {
   const pedido = validarPedido({ contacto, sesiones: [{ ...sesion, precio: 1, total: 1 }], total: 1 }, ahora);
-  assert.equal(pedido.totalCentavos, 48000);
-  assert.equal(pedido.sesiones[0].conceptos[0].precioCentavos, 48000);
+  assert.equal(pedido.totalCentavos, 110000);
+  assert.equal(pedido.sesiones[0].conceptos[0].precioCentavos, 110000);
   assert.equal(pedido.contacto.correo, "cliente@example.com");
 });
 test("validación estricta de contacto, cantidades, tipos, fechas y sesiones", () => {
-  for (const entrada of [null, {}, { contacto, sesiones: [] }, { contacto, sesiones: Array(51).fill(sesion) }, { contacto: { ...contacto, correo: "mal" }, sesiones: [sesion] }, { contacto: { ...contacto, telefono: "abcdefg" }, sesiones: [sesion] }, ...[{ horas: "1" }, { tecnico: "true" }, { operadoresExtra: 21 }, { fecha: "2026-02-30" }, { inicio: "21:00" }, { fecha: "2026-10-25", inicio: "12:00" }, { fecha: "2027-01-01" }].map(c => ({ contacto, sesiones: [{ ...sesion, ...c }] }))]) {
+  for (const entrada of [null, {}, { contacto, sesiones: [] }, { contacto, sesiones: Array(51).fill(sesion) }, { contacto: { ...contacto, correo: "mal" }, sesiones: [sesion] }, { contacto: { ...contacto, telefono: "abcdefg" }, sesiones: [sesion] }, ...[{ horas: "1" }, { transmision: "true" }, { paquetesReels: 21 }, { fecha: "2026-02-30" }, { inicio: "21:00" }, { fecha: "2026-10-25", inicio: "12:00" }, { fecha: "2027-01-01" }].map(c => ({ contacto, sesiones: [{ ...sesion, ...c }] }))]) {
     assert.throws(() => validarPedido(entrada, ahora));
   }
 });
 test("rechaza traslapes y permite sesiones contiguas", () => {
   assert.throws(() => validarPedido({ contacto, sesiones: [sesion, sesion] }, ahora), /cruza/);
-  assert.equal(validarPedido({ contacto, sesiones: [sesion, { ...sesion, inicio: "09:00" }] }, ahora).totalCentavos, 96000);
+  assert.equal(validarPedido({ contacto, sesiones: [sesion, { ...sesion, inicio: "09:00" }] }, ahora).totalCentavos, 220000);
 });
 test("la huella es estable e incluye servicios y contacto", () => {
   const a = validarPedido({ contacto, sesiones: [sesion] }, ahora);
   assert.equal(a.huella, validarPedido({ contacto, sesiones: [{ ...sesion, total: 0 }] }, ahora).huella);
-  assert.notEqual(a.huella, validarPedido({ contacto, sesiones: [{ ...sesion, tecnico: true }] }, ahora).huella);
+  assert.notEqual(a.huella, validarPedido({ contacto, sesiones: [{ ...sesion, transmision: true }] }, ahora).huella);
 });
 test("autentica HMAC y rechaza ID, firma, request-id o secreto alterados", () => {
   const ts = "1792951200000";

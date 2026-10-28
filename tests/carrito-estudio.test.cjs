@@ -11,29 +11,32 @@ require.extensions[".ts"] = (modulo, ruta) => {
   modulo._compile(outputText, ruta);
 };
 const { conceptosSesion, totalSesion, validarSesion, leerCarrito } = require("../src/lib/carrito-estudio.ts");
-const base = { fecha: "2026-11-02", inicio: "08:00", horas: 1, tecnico: false, transmision: false, operadoresExtra: 0, ediciones: 0, paquetesClips: 0 };
+const base = { fecha: "2026-11-02", inicio: "08:00", horas: 1, transmision: false, ediciones: 0, paquetesReels: 0 };
 const opciones = { hoy: "2026-10-25", ultimaFecha: "2026-12-27", ahora: "2026-10-25 12:00", reservas: [], carrito: [] };
 
-test("la cotización recibida suma 3,480 MXN", () => {
-  const sesion = { ...base, tecnico: true, transmision: true, operadoresExtra: 1, ediciones: 1, paquetesClips: 1 };
-  assert.equal(totalSesion(sesion), 3480);
-  assert.equal(conceptosSesion(sesion).length, 6);
+test("una hora con transmisión, una edición y un paquete de reels suma 5,300 MXN", () => {
+  const sesion = { ...base, transmision: true, ediciones: 1, paquetesReels: 1 };
+  assert.equal(totalSesion(sesion), 5300);
+  assert.equal(conceptosSesion(sesion).length, 4);
 });
-test("las horas multiplican estudio y personal; edición y clips conservan precio por unidad", () => {
-  assert.equal(totalSesion({ ...base, horas: 2, tecnico: true, transmision: true, operadoresExtra: 1, ediciones: 1, paquetesClips: 1 }), 4460);
+test("cada hora después de la primera cuesta 700 y la transmisión se cobra una vez por sesión", () => {
+  const filas = conceptosSesion({ ...base, horas: 3, transmision: true });
+  assert.equal(filas.find((c) => c.nombre === "Hora extra de estudio").subtotal, 1400);
+  assert.equal(filas.find((c) => c.nombre === "Transmisión en vivo").subtotal, 200);
+  assert.equal(totalSesion({ ...base, horas: 3, transmision: true }), 2700);
 });
-test("dos operadores durante tres horas cuestan 900 y dos paquetes incluyen 20 clips", () => {
-  const filas = conceptosSesion({ ...base, horas: 3, operadoresExtra: 2, paquetesClips: 2 });
-  assert.equal(filas.find((c) => c.nombre === "Operador extra").subtotal, 900);
-  assert.equal(filas.find((c) => c.nombre === "Paquete de 10 clips").subtotal, 2000);
+test("edición y reels se cobran por unidad, sin importar las horas", () => {
+  const filas = conceptosSesion({ ...base, horas: 3, ediciones: 2, paquetesReels: 2 });
+  assert.equal(filas.find((c) => c.nombre === "Edición de programa").subtotal, 6000);
+  assert.equal(filas.find((c) => c.nombre === "Paquete de 4 reels").subtotal, 2000);
 });
-test("el estudio solo cuesta 480 por hora y multicámara no agrega cargos", () => {
-  assert.equal(totalSesion(base), 480);
+test("una hora de estudio cuesta 1,100 y multicámara no agrega cargos", () => {
+  assert.equal(totalSesion(base), 1100);
   assert.equal(conceptosSesion(base).length, 1);
 });
 test("permite toda la jornada 08:00–21:00 y la última hora 20:00–21:00", () => {
   assert.equal(validarSesion({ ...base, horas: 13 }, opciones), null);
-  assert.equal(totalSesion({ ...base, horas: 13 }), 6240);
+  assert.equal(totalSesion({ ...base, horas: 13 }), 9500);
   assert.equal(validarSesion({ ...base, inicio: "20:00" }, opciones), null);
 });
 test("rechaza antes de abrir, al cierre, después de cerrar, medias horas y duración cero", () => {
@@ -47,7 +50,7 @@ test("rechaza días inexistentes, pasados, fuera del periodo y horas ya pasadas 
   }
 });
 test("rechaza cantidades inválidas y servicios de tipo incorrecto", () => {
-  for (const cambio of [{ ediciones: -1 }, { paquetesClips: 0.5 }, { operadoresExtra: 21 }, { tecnico: "true" }, { transmision: null }]) {
+  for (const cambio of [{ ediciones: -1 }, { paquetesReels: 0.5 }, { ediciones: 21 }, { paquetesReels: undefined }, { transmision: null }, { transmision: "true" }]) {
     assert.ok(validarSesion({ ...base, ...cambio }, opciones));
   }
 });
@@ -69,8 +72,9 @@ test("recupera sesiones locales y elimina entradas inválidas o IDs duplicados",
   assert.deepEqual(leerCarrito("null"), []);
   assert.deepEqual(leerCarrito(null), []);
 });
-test("una sesión guardada que ya pasó se conserva para poder editarla y se marca inválida", () => {
-  const [sesion] = leerCarrito(JSON.stringify([{ ...base, id: "vieja", fecha: "2026-10-24" }]));
-  assert.equal(sesion.id, "vieja");
-  assert.ok(validarSesion(sesion, opciones));
+test("al leer el carrito se descartan las sesiones que ya empezaron y se conservan las futuras", () => {
+  const futura = { ...base, id: "futura" };
+  const guardado = JSON.stringify([{ ...base, id: "vieja", fecha: "2026-10-24", transmision: true }, { ...base, id: "hoy", fecha: "2026-10-25", inicio: "12:00" }, futura]);
+  assert.deepEqual(leerCarrito(guardado, opciones.ahora), [futura]);
+  assert.equal(leerCarrito(guardado).length, 3);
 });

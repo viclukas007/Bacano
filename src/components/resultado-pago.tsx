@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { pesos } from "@/lib/carrito-estudio";
+import { CLAVE_CARRITO, leerCarrito, pesos } from "@/lib/carrito-estudio";
 
 interface Resultado { id: string; estado: string; totalCentavos: number; expiraEn: string; sesiones: { desde: string; hasta: string }[] }
 const MENSAJES: Record<string, [string, string]> = {
@@ -31,6 +31,16 @@ export function ResultadoPago({ inicial }: { inicial: Resultado | null }) {
     const timer = setInterval(() => { if (++intentos > 24) clearInterval(timer); else void actualizar(); }, 5000);
     return () => { clearTimeout(primero); clearInterval(timer); };
   }, [actualizar, inicial, pedido?.estado]);
+  // Lo pagado sale del carrito; si quedara, el cliente lo vería cargado al volver a la home.
+  useEffect(() => {
+    if (pedido?.estado !== "aprobado") return;
+    const pagadas = new Set(pedido.sesiones.map((s) => s.desde));
+    try {
+      const carrito = leerCarrito(window.localStorage.getItem(CLAVE_CARRITO));
+      const restantes = carrito.filter((s) => !pagadas.has(`${s.fecha} ${s.inicio}`));
+      if (restantes.length !== carrito.length) window.localStorage.setItem(CLAVE_CARRITO, JSON.stringify(restantes));
+    } catch { /* Sin localStorage tampoco hay carrito guardado que limpiar. */ }
+  }, [pedido]);
   const [titulo, descripcion] = pedido ? MENSAJES[pedido.estado] ?? MENSAJES.pendiente : ["No encontramos el pedido", "Abre este enlace en el mismo navegador desde el que iniciaste el pago."];
   return <div className="border-2 border-cian bg-carbon p-6 sm:p-9">
     <p className="display text-lg text-cian">Bacano · Renta de estudio</p>

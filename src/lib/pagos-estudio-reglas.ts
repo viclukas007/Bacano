@@ -47,7 +47,7 @@ export function validarPedido(entrada: unknown, ahora = new Date()): DatosPedido
     const s = objeto(valor);
     // Se seleccionan campos explícitamente. Nunca se aceptan precios ni totales del navegador.
     if (typeof s.fecha !== "string" || typeof s.inicio !== "string") throw new ErrorPago("Revisa la fecha y hora de la sesión.");
-    const configuracion = { fecha: s.fecha, inicio: s.inicio, horas: s.horas, tecnico: s.tecnico, transmision: s.transmision, operadoresExtra: s.operadoresExtra, ediciones: s.ediciones, paquetesClips: s.paquetesClips } as ConfiguracionEstudio;
+    const configuracion = { fecha: s.fecha, inicio: s.inicio, horas: s.horas, transmision: s.transmision, ediciones: s.ediciones, paquetesReels: s.paquetesReels } as ConfiguracionEstudio;
     const error = validarSesion(configuracion, { hoy, ultimaFecha: sumarDias(lunesDe(hoy), 62), ahora: instante, reservas: [], carrito: anteriores });
     if (error) throw new ErrorPago(`Sesión ${i + 1}: ${error}`);
     anteriores.push({ ...configuracion, id: String(i) });
