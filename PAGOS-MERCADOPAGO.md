@@ -2,9 +2,20 @@
 
 ## Estado
 
-Integración implementada para Checkout Pro vía Preferences API. Usa PostgreSQL y las reservas existentes. El cobro real permanece cerrado hasta configurar las variables y activarlo explícitamente. No se han cargado credenciales ni realizado pagos en Mercado Pago.
+Integración implementada para Checkout Pro vía Preferences API. Usa PostgreSQL y las reservas existentes.
 
-Validación local del 2026-10-25: 32 pruebas aprobadas (19 de reglas y 13 de integración), ESLint, TypeScript, build y comprobación HTTP. Mercado Pago se simuló en las pruebas; no se ha validado aún el checkout contra una cuenta del proveedor. La revisión visual/manual en móvil y escritorio sigue pendiente.
+**Producción activa desde el 2026-10-28.** Aplicación "Bacano Estudio" (ID 1433857921998790) en la cuenta de Mercado Pago de Bacano; `APP_URL=https://www.bacano.mx`, `MERCADOPAGO_ENV=production`, webhook productivo en `https://www.bacano.mx/api/mercadopago/webhook` con el evento "Pagos (legacy)" (es el tópico `payment` que procesa el webhook). Antes de pasar a producción se validó el recorrido completo en el entorno de prueba: pago aprobado con tarjeta de prueba, webhook recibido, conciliación por mantenimiento y reserva confirmada visible en `/admin/pedidos` y en el calendario público.
+
+Validación local del 2026-10-25: 32 pruebas aprobadas (19 de reglas y 13 de integración), ESLint, TypeScript, build y comprobación HTTP. La revisión visual/manual en móvil y escritorio sigue pendiente.
+
+## Lecciones de la activación (2026-10-28)
+
+- **El proxy de EasyPanel sustituye cualquier respuesta 502 por su propia página HTML** ("Not Found", sin encabezados ni cookies de la app). Por eso los fallos del proveedor y del mantenimiento se devuelven como 503, que sí llega intacto al navegador.
+- Con las credenciales de prueba actuales el checkout de prueba corre en `www.mercadopago.com.mx`: hay que usar `init_point`; `sandbox_init_point` termina en "Algo salió mal".
+- En modo de prueba el **comprador tiene que ser un usuario de prueba** (panel → Cuentas de prueba, iniciar sesión con él en una ventana de incógnito). Una cuenta real o pagar como invitado devuelve "Una de las partes con la que intentas hacer el pago es de prueba".
+- Los pagos entre usuarios de prueba llegan con `live_mode: true`. `live_mode` solo se exige en producción.
+- `APP_URL` debe ser exactamente el origen por el que entra la gente (con o sin `www`): si no coincide, el checkout responde 403 "Abre el formulario desde el sitio de Bacano".
+- Si un webhook falla, Mercado Pago lo reintenta con esperas crecientes; el mantenimiento consulta el pago en la API y lo aplica sin esperar el reintento.
 
 ## Orden de activación
 
@@ -24,7 +35,7 @@ Copiar los nombres de `.env.example` al entorno local o al servicio web de EasyP
 
 | Variable | Valor |
 | --- | --- |
-| `APP_URL` | Origen público, sin rutas: `https://tu-dominio.mx` |
+| `APP_URL` | Origen público exacto por el que entra la gente, sin rutas: `https://www.bacano.mx` |
 | `MERCADOPAGO_ENABLED` | `false` inicialmente; `true` al terminar configuración y pruebas |
 | `MERCADOPAGO_ENV` | `test` o `production`; se compara contra `live_mode` del pago |
 | `MERCADOPAGO_ACCESS_TOKEN` | Access Token del vendedor y entorno elegidos; secreto de servidor |

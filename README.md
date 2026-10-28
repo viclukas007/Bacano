@@ -2,13 +2,13 @@
 
 Sitio de Bacano Media con programas, episodios, calendario y renta del estudio. Usa Next.js 16.4.3, React y PostgreSQL. El despliegue del VPS se administra desde EasyPanel; Docker Compose reproduce el entorno en local.
 
-## Estado actual: 2026-10-25
+## Estado actual: 2026-10-28
 
 El carrito y el backend de reservas/pagos están implementados. Se reutiliza la base PostgreSQL existente y su tabla `reservas`, con una migración aditiva para pedidos, sesiones, conceptos y pagos.
 
-**Mercado Pago permanece deshabilitado.** Falta configurar credenciales, vendedor, dominio HTTPS, Webhook y cron, y probar el recorrido en el entorno real de prueba de Mercado Pago antes de activar cobros.
+**Mercado Pago está activo en producción** en https://www.bacano.mx desde el 2026-10-28. El recorrido completo se validó primero en el entorno de prueba de Mercado Pago (pago aprobado, webhook, conciliación y reserva confirmada) y después se cambiaron las credenciales a producción. Ver [PAGOS-MERCADOPAGO.md](PAGOS-MERCADOPAGO.md).
 
-La validación local aprobó 32 pruebas (19 de reglas y 13 de integración), ESLint, TypeScript, build de producción y comprobaciones HTTP. Las pruebas de integración usan PostgreSQL real en una base temporal y simulan la API de Mercado Pago. No se realizaron pagos reales. Sigue pendiente la revisión visual/manual en móvil y escritorio.
+La validación local aprobó 32 pruebas (19 de reglas y 13 de integración), ESLint, TypeScript, build de producción y comprobaciones HTTP. Las pruebas de integración usan PostgreSQL real en una base temporal y simulan la API de Mercado Pago. Pendientes: cron del mantenimiento en EasyPanel, redirección de `bacano.mx` a `www.bacano.mx`, borrar la reserva de prueba del 11-nov-2026 y la revisión visual/manual en móvil y escritorio.
 
 ## Ejecutar en local
 

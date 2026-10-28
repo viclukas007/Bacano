@@ -1,10 +1,10 @@
 # Plan: reservas del estudio y pagos con Mercado Pago
 
-## Estado actual: 2026-10-25
+## Estado actual: 2026-10-28
 
-Frontend y backend implementados y validados en Docker local. Hay 32 pruebas aprobadas: 19 de reglas y 13 de integración con PostgreSQL real y Mercado Pago simulado. ESLint, TypeScript, build y comprobación HTTP aprobados. Docker local actualizado con Next.js 16.4.3.
+Frontend y backend implementados y validados en Docker local (32 pruebas: 19 de reglas y 13 de integración). El 2026-10-28 se probó el recorrido real en el entorno de prueba de Mercado Pago (pago aprobado, webhook, conciliación, reserva confirmada) y se activaron las credenciales de producción en https://www.bacano.mx. Los cobros son reales desde entonces.
 
-El cobro continúa deshabilitado; faltan configuración externa, pruebas reales en el entorno de prueba de Mercado Pago, revisión visual/manual y políticas comerciales definitivas. Los apartados y pagos no se activan solamente por tener el contenedor levantado.
+Pendientes: cron del mantenimiento, redirección `bacano.mx` → `www.bacano.mx`, borrar la reserva de prueba (pedido 7915293f, 11-nov-2026 15:00), revisión visual/manual y políticas comerciales definitivas.
 
 ## Alcance acordado
 
@@ -70,8 +70,9 @@ La liberación es lógica al vencer y se materializa antes de cada operación de
 - [x] Implementar webhooks verificados e idempotentes y consultar el pago antes de confirmar; validado con simulador.
 - [x] Confirmar reservas de pagos aprobados y actualizar calendario y administrador.
 - [x] Probar aprobación, rechazo, pendiente, duplicados, concurrencia, expiración y conciliación con PostgreSQL real y API de Mercado Pago simulada.
-- [ ] Probar el checkout y las notificaciones en el entorno de prueba real de Mercado Pago, con credenciales y URL pública.
-- [ ] Configurar secretos, vendedor, HTTPS y cron en EasyPanel; activar cobros después de la validación externa.
+- [x] Probar el checkout y las notificaciones en el entorno de prueba real de Mercado Pago, con credenciales y URL pública (2026-10-28).
+- [x] Configurar secretos, vendedor y HTTPS en EasyPanel; cobros activados en producción (2026-10-28).
+- [ ] Configurar el cron del mantenimiento en EasyPanel.
 
 Configuración y operación: [PAGOS-MERCADOPAGO.md](PAGOS-MERCADOPAGO.md).
 
@@ -89,9 +90,10 @@ El visitante puede armar su carrito y revisar contacto y total, con la identidad
 ## Pendientes para abrir cobros
 
 - [ ] Confirmar pago completo/anticipo, duración del apartado, impuestos, facturación y política de cancelación/reembolso.
-- [ ] Configurar la aplicación, el vendedor y las credenciales del entorno de prueba en las variables del servidor.
-- [ ] Disponer de un dominio HTTPS público y registrar el evento Pagos en `/api/mercadopago/webhook`, con su secreto.
+- [x] Configurar la aplicación, el vendedor y las credenciales del entorno de prueba en las variables del servidor.
+- [x] Disponer de un dominio HTTPS público y registrar el evento Pagos en `/api/mercadopago/webhook`, con su secreto.
 - [ ] Configurar el cron autenticado de `/api/estudio/mantenimiento` y supervisar sus respuestas.
-- [ ] Habilitar el checkout en modo `test` para probar aprobación, rechazo, pendiente, retorno, Webhooks y reintentos reales.
+- [x] Habilitar el checkout en modo `test` y probar un pago aprobado con webhook y conciliación reales (rechazo y pendiente quedaron cubiertos solo por las pruebas automáticas).
 - [ ] Completar el recorrido manual y la revisión móvil/escritorio, incluido el tratamiento de datos de contacto.
-- [ ] Cambiar al vendedor/credenciales/secreto correspondientes a producción, configurar `MERCADOPAGO_ENV=production` y activar `MERCADOPAGO_ENABLED=true` cuando la validación esté terminada.
+- [x] Cambiar al vendedor/credenciales/secreto de producción con `MERCADOPAGO_ENV=production` (2026-10-28).
+- [ ] Borrar de la base la reserva de prueba del 11-nov-2026 (pedido 7915293f) y redirigir `bacano.mx` a `www.bacano.mx`.
