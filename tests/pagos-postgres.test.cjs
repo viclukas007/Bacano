@@ -172,7 +172,7 @@ test("firma incorrecta y pagos de importe, comercio, moneda o entorno incorrecto
   const pedido = await crear([sesion("13:00")]);
   const p = pago(pedido);
   assert.equal((await enviarWebhook(p, { "x-signature": "ts=123,v1=mal" })).status, 401);
-  for (const cambio of [{ transaction_amount: 1 }, { currency_id: "USD" }, { collector_id: 456 }, { live_mode: true }]) assert.equal((await enviarWebhook(pago(pedido, cambio))).status, 422);
+  for (const cambio of [{ transaction_amount: 1 }, { currency_id: "USD" }, { collector_id: 456 }]) assert.equal((await enviarWebhook(pago(pedido, cambio))).status, 422);
   const [r] = await db.sql`SELECT estado FROM estudio_pedidos WHERE id = ${pedido.id}`; assert.equal(r.estado, "creando");
 });
 test("un segundo pago aprobado y los reembolsos requieren revisión sin duplicar reservas", async () => {

@@ -78,7 +78,17 @@ export interface PagoMP {
   transaction_amount_refunded?: number;
 }
 export function validarPagoMP(p: PagoMP, pedido: { id: string; total_centavos: number }, vendedor: string, produccion: boolean) {
-  if (p.external_reference !== pedido.id || p.currency_id !== "MXN" || Math.round(p.transaction_amount * 100) !== pedido.total_centavos || !Number.isFinite(p.transaction_amount) || String(p.collector_id) !== vendedor || p.live_mode !== produccion || !Number.isFinite(Date.parse(p.date_last_updated))) {
+  const fallas: string[] = [];
+  if (p.external_reference !== pedido.id) fallas.push("referencia");
+  if (p.currency_id !== "MXN") fallas.push(`moneda=${p.currency_id}`);
+  if (!Number.isFinite(p.transaction_amount) || Math.round(p.transaction_amount * 100) !== pedido.total_centavos) fallas.push(`importe=${p.transaction_amount}`);
+  if (String(p.collector_id) !== vendedor) fallas.push(`vendedor=${p.collector_id}`);
+  // En producción el pago debe ser real. En pruebas no se exige lo contrario:
+  // los pagos entre usuarios de prueba pueden llegar con live_mode en true.
+  if (produccion && p.live_mode !== true) fallas.push("live_mode=false");
+  if (!Number.isFinite(Date.parse(p.date_last_updated))) fallas.push("fecha");
+  if (fallas.length) {
+    console.error(`[pagos] pago ${p.id} rechazado para el pedido ${pedido.id}: ${fallas.join(", ")}`);
     throw new ErrorPago("El pago no coincide con el pedido o el comercio.", 422);
   }
 }

@@ -39,7 +39,11 @@ test("un pago debe coincidir con referencia, importe, moneda, comercio y entorno
   const pedido = { id: randomUUID(), total_centavos: 48000 };
   const pago = { external_reference: pedido.id, transaction_amount: 480, currency_id: "MXN", collector_id: 123, live_mode: false, date_last_updated: ahora.toISOString() };
   assert.doesNotThrow(() => validarPagoMP(pago, pedido, "123", false));
-  for (const cambio of [{ external_reference: randomUUID() }, { transaction_amount: 1 }, { currency_id: "USD" }, { collector_id: 456 }, { live_mode: true }, { date_last_updated: "mal" }]) assert.throws(() => validarPagoMP({ ...pago, ...cambio }, pedido, "123", false));
+  for (const cambio of [{ external_reference: randomUUID() }, { transaction_amount: 1 }, { currency_id: "USD" }, { collector_id: 456 }, { date_last_updated: "mal" }]) assert.throws(() => validarPagoMP({ ...pago, ...cambio }, pedido, "123", false));
+  // En pruebas se acepta cualquier live_mode; en producción el pago debe ser real.
+  assert.doesNotThrow(() => validarPagoMP({ ...pago, live_mode: true }, pedido, "123", false));
+  assert.doesNotThrow(() => validarPagoMP({ ...pago, live_mode: true }, pedido, "123", true));
+  assert.throws(() => validarPagoMP(pago, pedido, "123", true));
 });
 test("el cobro permanece cerrado sin activación y configuración completas", () => {
   const anterior = process.env.MERCADOPAGO_ENABLED;
