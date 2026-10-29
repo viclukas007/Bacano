@@ -28,9 +28,9 @@ Para desarrollar fuera de Docker, ejecutar `npm ci` y `npm run dev` con `DATABAS
 
 ## Reservas y pagos
 
-El visitante configura sesiones entre las 08:00 y las 21:00, hora de Mérida, añade servicios y revisa sus datos y el total. El carrito se conserva en el navegador sin guardar los datos de contacto en localStorage.
+El visitante configura sesiones entre las 08:00 y las 21:00, hora de Mérida, añade servicios y revisa sus datos y el total. El carrito se conserva en el navegador (`localStorage`, clave `bacano:carrito-estudio:v2`) sin guardar los datos de contacto; al cargarlo se descartan las sesiones cuya hora ya pasó y, cuando un pago se aprueba, se quitan las sesiones pagadas. Los precios están en `TARIFAS` de `src/lib/carrito-estudio.ts` y se documentan en [PLAN-RESERVAS.md](PLAN-RESERVAS.md).
 
-Con el pago habilitado, el servidor valida el carrito, recalcula precios y crea un pedido con apartado temporal. El valor inicial es cobro completo y hasta 15 minutos de apartado, sujeto a la política comercial definitiva. Solo un pago consultado y verificado en Mercado Pago confirma las reservas. Los pagos tardíos o duplicados, reembolsos y contracargos requieren revisión administrativa.
+Con el pago habilitado, el servidor valida el carrito, recalcula precios y crea un pedido con apartado temporal. El valor inicial es cobro completo y hasta 15 minutos de apartado, sujeto a la política comercial definitiva. Un pedido en línea lleva como máximo 6 sesiones y 26 horas; el tope de 3 pedidos abiertos cuenta por cookie y por dirección del cliente (último salto de `X-Forwarded-For`), y desde `/admin/pedidos` se pueden liberar los apartados de un pedido que nadie pagó. Solo un pago consultado y verificado en Mercado Pago confirma las reservas. Los pagos tardíos o duplicados, reembolsos y contracargos requieren revisión administrativa.
 
 | Parte | Archivo o ruta |
 | --- | --- |

@@ -1,13 +1,34 @@
 # Avances: carrito de renta del estudio
 
-## Estado actual: 2026-10-25
+## Estado actual: 2026-10-28
 
-- Frontend y backend de pedidos/pagos implementados; Docker local actualizado en http://127.0.0.1:3001/#estudio.
-- PostgreSQL existente reutilizado y migración aditiva aplicada. La comprobación de cantidad y huella de reservas no mostró cambios en los datos previos.
-- 32 pruebas aprobadas: 19 de reglas y 13 de integración. PostgreSQL fue real; la API de Mercado Pago fue simulada.
-- ESLint, TypeScript, build de producción, auditoría de dependencias y comprobación HTTP aprobados con Next.js 16.4.3.
-- Cobros deshabilitados. Pendientes: credenciales/vendedor, HTTPS, Webhook, cron, pruebas externas, revisión visual/manual y decisiones comerciales definitivas.
+- Carrito, pedidos y pagos publicados en https://www.bacano.mx/#estudio, con Mercado Pago en producción (cobros reales desde el 28-oct-2026). Docker local en http://127.0.0.1:3001/#estudio.
+- Precios vigentes en [PLAN-RESERVAS.md](PLAN-RESERVAS.md), cambiados el 28-oct-2026 (commit af007cb).
+- 37 pruebas aprobadas: 22 de reglas y 15 de integración. PostgreSQL fue real; la API de Mercado Pago fue simulada.
+- Auditoría de seguridad del 28-oct-2026 (ver más abajo): los dos hallazgos de severidad media quedaron arreglados en el commit 4c9992c; queda uno bajo y tres pendientes de validación que dependen de producción.
+- af007cb ya está en producción (el pedido bc6b0d87 del 28-oct se creó con $1,100). Ese pedido no se pudo pagar como invitado: el correo del formulario era el de la cuenta vendedora ("Espacios Ejecutivos") y Mercado Pago deshabilita "Pagar" cuando quien paga es el mismo que cobra (`invalid_users`). Con otro correo, como invitado, el primer pago productivo se acreditó (pedido 0177bae2, operación 186607470750, $1,100): la tarjeta podía ser la misma, lo que bloqueaba era el correo.
+- Pendientes: redesplegar 4c9992c en EasyPanel, cron del mantenimiento, borrar la reserva de prueba del 11-nov-2026, políticas comerciales definitivas (cancelación, facturación, anticipos), el hallazgo bajo de la auditoría (la vista Pedidos solo muestra los 100 más nuevos) y las tres comprobaciones en producción que pide `NEEDS-VALIDATION.md`.
 - Guía de activación: [PAGOS-MERCADOPAGO.md](PAGOS-MERCADOPAGO.md). Seguimiento: [PLAN-RESERVAS.md](PLAN-RESERVAS.md).
+
+## 2026-10-28 — auditoría de seguridad y arreglos de severidad media
+
+- Auditoría completa del commit af007cb con la skill `security-audit` (Cloudflare), perfil estándar: 28 agentes, 27 unidades de cobertura en dos oleadas, cada hallazgo validado por un agente distinto del que lo encontró y un revisor más sobre el registro final. Todo corrió en un sandbox de Docker sin internet y con valores ficticios; nunca se tocó producción, Mercado Pago ni la base local. Reportes en `~/security-audit-skill/bacano-web/run-1/` (`REPORT.md`, `FINDINGS-DETAIL.md`, `NEEDS-VALIDATION.md`).
+- Lo que resistió: precios recalculados en el servidor, firma y monto exacto en el webhook, bloqueo contra doble reserva, pedidos ajenos inaccesibles, SQL parametrizado, sesión del admin revisada en cada acción, pagos tardíos/duplicados/reembolsados a revisión. Ningún hallazgo compromete dinero, datos de clientes ni la cuenta admin.
+- **Medio, arreglado (4c9992c):** dos peticiones anónimas sin pagar apartaban el calendario completo (50 sesiones de 13 h por pedido, 60 días, 780 h) y lo renovaban cada 15 minutos, porque el tope de 3 pedidos abiertos contaba solo por la cookie `bacano_estudio`, que el servidor fabrica nueva si la petición la omite; los apartados quedaban aunque Mercado Pago fallara y el admin no podía liberarlos. Ahora: máximo 6 sesiones y 26 horas por pedido (`MAX_SESIONES_PEDIDO`, `MAX_HORAS_PEDIDO` en `src/lib/carrito-estudio.ts`, mismo tope en el carrito y en `validarPedido`); el tope de 3 abiertos cuenta también por dirección del cliente (`estudio_pedidos.cliente_hash`, último salto de `X-Forwarded-For`, que es el que agrega el proxy de EasyPanel; sin proxy no hay dirección y solo cuenta la cookie); y en `/admin/pedidos` hay un botón "Liberar apartado" (`admin.liberarPedido`) que vence el pedido y borra sus apartados, con lo que un pago posterior cae en revisión.
+- **Medio, arreglado (4c9992c):** la acción pública `suscribir` validaba el correo con un regex de retroceso cuadrático y sin tope de longitud: un campo de 64 KB bloqueaba el único proceso de Node 4.9 s (checkout y webhook incluidos) y Next aceptaba campos de 1 MB. Ahora el tope de 254 caracteres va antes del patrón, el patrón es lineal (`^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)*\.[^\s@.]{2,}$`), el input lleva `maxLength`, y `experimental.serverActions.bodySizeLimit` baja a 64 KB (los formularios del admin son solo texto). Prueba de regresión en `tests/newsletter.test.cjs`: un correo de 1 MB se rechaza en menos de 50 ms.
+- **Bajo, sin arreglar:** `/admin/pedidos` lista solo los 100 pedidos más nuevos; con 100 checkouts anónimos los pedidos en `revision` salen de la vista aunque sigan en la base. El reporte propone listar siempre los de revisión y buscar por id.
+- **Pendientes de validación** (dependen de producción; `NEEDS-VALIDATION.md` trae los pasos de observación, sin mandar tráfico): si `SESSION_SECRET`/`ADMIN_PASSWORD` de producción siguen siendo los de `.env.example` y nunca se cambió la clave en `/admin/clave`, cualquiera entra al admin; el optimizador de imágenes (`/_next/image`) puede llenar el disco con alias del logo (arreglo robusto: `images.unoptimized: true`); la conciliación con Mercado Pago desde `GET /api/estudio/pedidos/[id]` no tiene presupuesto por cliente ni por antigüedad.
+- Pruebas tras los arreglos: 22 de reglas y 15 de integración en Docker; ESLint y TypeScript limpios; Docker local reconstruido con la migración `cliente_hash`.
+
+## 2026-10-28 — precios nuevos y carrito sin sesiones vencidas
+
+- En producción el carrito mostraba $830 sin que el usuario hubiera elegido nada: el navegador conservaba una sesión de prueba del 26-oct (estudio $480 + técnico $250 + transmisión $100). El carrito vivía en localStorage sin caducar y el diseño conservaba a propósito las sesiones vencidas para editarlas. No hubo cobro: el servidor rechaza sesiones pasadas y el botón de continuar quedaba bloqueado.
+- Al leer el carrito se descartan las sesiones cuya hora de inicio ya pasó (`leerCarrito(texto, ahora)`).
+- Al aprobarse un pago, `/estudio/pago` quita del carrito las sesiones pagadas.
+- Precios nuevos: renta $1,100 la primera hora y $700 cada hora extra, transmisión en vivo $200 por sesión, edición de programa $3,000 y paquete de 4 reels $1,000. Se quitaron técnico/operador y operador extra. El catálogo (`TARIFAS`) sigue siendo uno solo para la página y el servidor.
+- Los campos de la sesión cambiaron (`transmision`, `ediciones`, `paquetesReels`), por lo que la clave del carrito pasó a `bacano:carrito-estudio:v2`: los carritos v1 guardados en navegadores ya no se cargan. Los pedidos creados antes conservan sus conceptos y precios congelados.
+- Los errores de TypeScript en `.next/types/validator.ts` eran tipos de rutas generados el 25-oct; se regeneran con `npx next typegen` y no afectan el build de Docker.
+- Pruebas: 19 de reglas y 13 de integración en Docker aprobadas; ESLint y TypeScript limpios. Revisado en Docker local con un carrito v1 y una sesión vencida: ambos se descartan y una sesión de 3 h con transmisión, 1 edición y 2 paquetes de reels suma $7,700.
 
 ## 2026-10-28 — activación de Mercado Pago
 
