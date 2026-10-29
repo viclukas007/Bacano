@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:estudio": "node --test tests/carrito-estudio.test.cjs tests/pagos-estudio.test.cjs",
+    "test:estudio": "node --test tests/carrito-estudio.test.cjs tests/pagos-estudio.test.cjs tests/newsletter.test.cjs",
     "test:pagos:integration": "node --test tests/pagos-postgres.test.cjs"
   },
   "dependencies": {

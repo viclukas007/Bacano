@@ -33,6 +33,7 @@ export function Newsletter() {
               name="correo"
               type="email"
               required
+              maxLength={254}
               autoComplete="email"
               placeholder="hola@correo.com"
               aria-describedby={estado ? "correo-estado" : undefined}

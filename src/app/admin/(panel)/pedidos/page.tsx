@@ -2,6 +2,9 @@ import { exigirSesion } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { limpiarApartados } from "@/lib/pagos-estudio";
 import { pesos } from "@/lib/carrito-estudio";
+import { liberarPedido } from "@/app/admin/acciones";
+
+const ABIERTOS = ["creando", "pendiente", "rechazado"];
 
 export const dynamic = "force-dynamic";
 export default async function Pedidos() {
@@ -13,7 +16,7 @@ export default async function Pedidos() {
   const pagos = pedidos.length ? await sql`SELECT pedido_id, id, estado, detalle FROM estudio_pagos WHERE pedido_id IN ${sql(pedidos.map(p => p.id))} ORDER BY actualizado_mp DESC` : [];
   return <>
     <h1 className="display text-4xl text-white">Pedidos del estudio</h1>
-    <p className="my-4 text-gris">Últimos 100 pedidos. Los pagos tardíos, duplicados, reembolsos y contracargos requieren revisión. Esta vista no realiza devoluciones ni cambia reservas pagadas.</p>
+    <p className="my-4 text-gris">Últimos 100 pedidos. Los pagos tardíos, duplicados, reembolsos y contracargos requieren revisión. Esta vista no realiza devoluciones ni cambia reservas pagadas; un pedido sin pagar sí se puede liberar para devolver sus horarios al calendario.</p>
     {!pedidos.length && <p className="py-8 text-gris">Todavía no hay pedidos.</p>}
     <div className="space-y-6">{pedidos.map(p => <article key={p.id} id={p.id} className="scroll-mt-8 border-2 border-borde bg-carbon p-5 text-sm text-gris">
       <h2 className="display text-2xl text-cian">{p.nombre} · {p.estado}</h2>
@@ -29,6 +32,10 @@ export default async function Pedidos() {
       </li>)}</ul>
       <p className="break-all">Preferencia: {p.preferencia_id ?? "Sin crear"}</p>
       <ul className="mt-2">{pagos.filter(pago => pago.pedido_id === p.id).map(pago => <li key={pago.id}>Pago {pago.id}: {pago.estado} · {pago.detalle}</li>)}</ul>
+      {ABIERTOS.includes(p.estado) && <form action={liberarPedido} className="mt-4">
+        <input type="hidden" name="id" value={p.id} />
+        <button type="submit" className="min-h-11 border border-borde px-3 py-2 text-sm text-gris transition-colors hover:border-cian hover:text-cian">Liberar apartado</button>
+      </form>}
     </article>)}</div>
   </>;
 }

@@ -7,15 +7,22 @@ export type EstadoSuscripcion = {
 
 // Validación deliberadamente laxa: solo descarta lo que claramente no es un
 // correo. La confirmación real la da el mail de bienvenida.
-const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+//
+// El tope de longitud va ANTES del regex y en el patrón ninguna parte se
+// solapa con la siguiente (las etiquetas del dominio no llevan "."), así el
+// costo es lineal: el patrón anterior se trababa con un campo largo y dejaba
+// el proceso de Node bloqueado varios segundos por petición.
+const MAX_CORREO = 254;
+const CORREO = /^[^\s@]{1,64}@[^\s@.]+(?:\.[^\s@.]+)*\.[^\s@.]{2,}$/;
 
 export async function suscribir(
   _previo: EstadoSuscripcion,
   formData: FormData,
 ): Promise<EstadoSuscripcion> {
-  const correo = String(formData.get("correo") ?? "").trim();
+  const valor = formData.get("correo");
+  const correo = typeof valor === "string" ? valor.trim() : "";
 
-  if (!CORREO.test(correo)) {
+  if (correo.length > MAX_CORREO || !CORREO.test(correo)) {
     return { ok: false, mensaje: "Revisa el correo, parece incompleto." };
   }
 

@@ -9,6 +9,7 @@ export interface PedidoFila {
   id: string; propietario_hash: string; huella: string; nombre: string; correo: string; telefono: string; notas: string;
   total_centavos: number; estado: string; motivo_revision: string | null; preferencia_id: string | null;
   checkout_url: string | null; pago_aprobado_id: string | null; expira_en: Date; checkout_en_proceso_hasta: Date | null;
+  cliente_hash: string | null;
 }
 export async function bloquearEstudio(tx: Tx) { await tx`SELECT pg_advisory_xact_lock(948321, 1)`; }
 export async function expirarApartadosTx(tx: Tx) {
@@ -21,8 +22,9 @@ export async function limpiarApartados() {
   await prepararBase();
   return sql.begin(async tx => { await bloquearEstudio(tx); return expirarApartadosTx(tx); });
 }
-export async function crearPedido(datos: DatosPedido, propietario: string, clave: string, minutos: number): Promise<PedidoFila> {
+export async function crearPedido(datos: DatosPedido, propietario: string, clave: string, minutos: number, cliente: string | null = null): Promise<PedidoFila> {
   if (!esUuid(clave)) throw new ErrorPago("Falta la clave del intento de pago.");
+  const clienteHash = cliente ? hashToken(cliente) : null;
   await prepararBase();
   try {
     return await sql.begin(async tx => {
@@ -36,12 +38,15 @@ export async function crearPedido(datos: DatosPedido, propietario: string, clave
       // Recupera el checkout al recargar la página o perder la clave en memoria.
       const [mismoCarrito] = await tx<PedidoFila[]>`SELECT * FROM estudio_pedidos WHERE propietario_hash = ${hashToken(propietario)} AND huella = ${datos.huella} AND estado IN ('creando','pendiente','rechazado','aprobado','revision') ORDER BY creado_en DESC LIMIT 1`;
       if (mismoCarrito) return mismoCarrito;
-      const [{ n }] = await tx<{ n: number }[]>`SELECT count(*)::int AS n FROM estudio_pedidos WHERE propietario_hash = ${hashToken(propietario)} AND estado IN ('creando','pendiente','rechazado')`;
+      // El tope cuenta por cookie y por dirección: la cookie se la fabrica el
+      // navegador en cada petición si la omite; la dirección la pone el proxy.
+      const porCliente = clienteHash ? tx`OR cliente_hash = ${clienteHash}` : tx``;
+      const [{ n }] = await tx<{ n: number }[]>`SELECT count(*)::int AS n FROM estudio_pedidos WHERE (propietario_hash = ${hashToken(propietario)} ${porCliente}) AND estado IN ('creando','pendiente','rechazado')`;
       if (n >= 3) throw new ErrorPago("Ya tienes varios intentos abiertos. Espera a que venza el apartado anterior.", 429);
       const id = randomUUID();
       const primerInicio = datos.sesiones.map(s => s.desde).sort()[0];
-      const [pedido] = await tx<PedidoFila[]>`INSERT INTO estudio_pedidos (id, propietario_hash, clave_idempotencia, huella, nombre, correo, telefono, notas, total_centavos, expira_en)
-        VALUES (${id}, ${hashToken(propietario)}, ${clave}, ${datos.huella}, ${datos.contacto.nombre}, ${datos.contacto.correo}, ${datos.contacto.telefono}, ${datos.contacto.notas}, ${datos.totalCentavos}, LEAST(now() + ${minutos} * interval '1 minute', ${primerInicio}::timestamp AT TIME ZONE 'America/Merida')) RETURNING *`;
+      const [pedido] = await tx<PedidoFila[]>`INSERT INTO estudio_pedidos (id, propietario_hash, cliente_hash, clave_idempotencia, huella, nombre, correo, telefono, notas, total_centavos, expira_en)
+        VALUES (${id}, ${hashToken(propietario)}, ${clienteHash}, ${clave}, ${datos.huella}, ${datos.contacto.nombre}, ${datos.contacto.correo}, ${datos.contacto.telefono}, ${datos.contacto.notas}, ${datos.totalCentavos}, LEAST(now() + ${minutos} * interval '1 minute', ${primerInicio}::timestamp AT TIME ZONE 'America/Merida')) RETURNING *`;
       if (new Date(pedido.expira_en).getTime() <= Date.now()) throw new ErrorPago("El horario elegido ya pasó.", 409);
       for (const [indice, sesion] of datos.sesiones.entries()) {
         await tx`INSERT INTO estudio_pedido_sesiones (pedido_id, indice, desde, hasta, configuracion, conceptos, total_centavos)
@@ -57,8 +62,8 @@ export async function crearPedido(datos: DatosPedido, propietario: string, clave
   }
 }
 
-export async function iniciarCheckout(datos: DatosPedido, propietario: string, clave: string, config = configuracionPago()) {
-  let pedido = await crearPedido(datos, propietario, clave, config.minutos);
+export async function iniciarCheckout(datos: DatosPedido, propietario: string, clave: string, config = configuracionPago(), cliente: string | null = null) {
+  let pedido = await crearPedido(datos, propietario, clave, config.minutos, cliente);
   if (["aprobado", "revision"].includes(pedido.estado)) return { pedido: pedido.id, url: `${config.appUrl}/estudio/pago?pedido=${pedido.id}` };
   if (pedido.estado === "expirado") throw new ErrorPago("El apartado venció. Inicia un nuevo intento de pago.", 410);
   if (pedido.checkout_url) return { pedido: pedido.id, url: pedido.checkout_url };

@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { conceptosSesion, validarSesion, finSesion, type ConfiguracionEstudio } from "./carrito-estudio";
+import { MAX_HORAS_PEDIDO, MAX_SESIONES_PEDIDO, conceptosSesion, horasCarrito, validarSesion, finSesion, type ConfiguracionEstudio } from "./carrito-estudio";
 import { lunesDe, sumarDias } from "./estudio";
 
 export class ErrorPago extends Error {
@@ -39,7 +39,7 @@ export function validarPedido(entrada: unknown, ahora = new Date()): DatosPedido
   const contacto = { nombre: texto(c, "nombre", 120, 2), correo: texto(c, "correo", 180, 3).toLowerCase(), telefono: texto(c, "telefono", 25, 7), notas: texto(c, "notas", 1000) };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contacto.correo)) throw new ErrorPago("Revisa tu correo electrónico.");
   if (!/^[+\d\s().-]+$/.test(contacto.telefono) || contacto.telefono.replace(/\D/g, "").length < 7) throw new ErrorPago("Revisa tu teléfono.");
-  if (!Array.isArray(datos.sesiones) || datos.sesiones.length < 1 || datos.sesiones.length > 50) throw new ErrorPago("El carrito debe contener entre 1 y 50 sesiones.");
+  if (!Array.isArray(datos.sesiones) || datos.sesiones.length < 1 || datos.sesiones.length > MAX_SESIONES_PEDIDO) throw new ErrorPago(`El carrito debe contener entre 1 y ${MAX_SESIONES_PEDIDO} sesiones.`);
   const instante = fechaHoraMerida(ahora);
   const hoy = instante.slice(0, 10);
   const anteriores: (ConfiguracionEstudio & { id: string })[] = [];
@@ -54,6 +54,7 @@ export function validarPedido(entrada: unknown, ahora = new Date()): DatosPedido
     const conceptos = conceptosSesion(configuracion).map(c => ({ nombre: c.nombre, cantidad: c.cantidad, unidad: c.unidad, precioCentavos: c.precio * 100, subtotalCentavos: c.subtotal * 100 }));
     return { configuracion, desde: `${configuracion.fecha} ${configuracion.inicio}`, hasta: `${configuracion.fecha} ${finSesion(configuracion)}`, conceptos, totalCentavos: conceptos.reduce((n, c) => n + c.subtotalCentavos, 0) };
   });
+  if (horasCarrito(sesiones.map(s => s.configuracion)) > MAX_HORAS_PEDIDO) throw new ErrorPago(`En línea se apartan hasta ${MAX_HORAS_PEDIDO} horas por pedido. Para más, escríbenos por WhatsApp.`);
   const totalCentavos = sesiones.reduce((n, s) => n + s.totalCentavos, 0);
   if (!Number.isSafeInteger(totalCentavos) || totalCentavos <= 0) throw new ErrorPago("El total del pedido no es válido.");
   return { contacto, sesiones, totalCentavos, huella: hashToken(JSON.stringify({ contacto, sesiones })) };

@@ -4,8 +4,8 @@ import { useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { IconFlecha } from "@/components/icons";
 import { diaLargo, sumarDias, type Reserva } from "@/lib/estudio";
 import {
-  APERTURA, CIERRE, CLAVE_CARRITO as CLAVE, MAX_UNIDADES, TARIFAS, conceptosSesion, finSesion,
-  horaEtiqueta, leerCarrito, pesos, totalSesion, validarSesion,
+  APERTURA, CIERRE, CLAVE_CARRITO as CLAVE, MAX_HORAS_PEDIDO, MAX_SESIONES_PEDIDO, MAX_UNIDADES, TARIFAS, conceptosSesion, finSesion,
+  horaEtiqueta, horasCarrito, leerCarrito, pesos, totalSesion, validarSesion,
   type ConfiguracionEstudio, type SesionEstudio,
 } from "@/lib/carrito-estudio";
 
@@ -38,6 +38,7 @@ const snapshotServidor = () => VACIO;
 const CAMPO = "mt-2 min-h-12 w-full min-w-0 border-2 border-borde bg-tinta px-3 py-2.5 text-base text-white [color-scheme:dark] focus:border-cian";
 const SECUNDARIO = "min-h-11 border border-borde px-3 py-2 text-sm text-gris transition-colors hover:border-cian hover:text-cian";
 const PRIMARIO = "display flex min-h-12 w-full items-center justify-center gap-3 bg-cian px-5 py-4 text-[17px] tracking-[0.04em] text-tinta transition-colors hover:bg-white disabled:cursor-not-allowed disabled:bg-borde disabled:text-gris";
+const TOPE_HORAS = `En línea se apartan hasta ${MAX_HORAS_PEDIDO} horas por pedido. Para más, escríbenos por WhatsApp.`;
 
 function ahoraMerida() {
   const partes = new Intl.DateTimeFormat("en-CA", {
@@ -99,7 +100,8 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas, pagoH
     if (editando && !carrito.some((s) => s.id === editando)) { setError("La sesión ya no está en el carrito. Cancela la edición y agrégala de nuevo."); return; }
     const fallo = validarSesion(sesion, { ...opciones, ahora: ahoraMerida() });
     if (fallo) { setError(fallo); return; }
-    if (!editando && carrito.length >= 50) { setError("Puedes agregar hasta 50 sesiones al carrito."); return; }
+    if (!editando && carrito.length >= MAX_SESIONES_PEDIDO) { setError(`Puedes agregar hasta ${MAX_SESIONES_PEDIDO} sesiones por pedido.`); return; }
+    if (horasCarrito(carrito.filter((s) => s.id !== editando)) + sesion.horas > MAX_HORAS_PEDIDO) { setError(TOPE_HORAS); return; }
     const nueva = { ...sesion, id: editando ?? globalThis.crypto?.randomUUID?.() ?? Array.from(globalThis.crypto.getRandomValues(new Uint32Array(4)), (n) => n.toString(16)).join("-") };
     guardar(editando ? carrito.map((s) => s.id === editando ? nueva : s) : [...carrito, nueva]);
     setEditando(null); setError(""); setAviso(editando ? "Sesión actualizada en tu carrito." : "Sesión agregada. Puedes elegir otra fecha o continuar con tus datos.");
@@ -108,6 +110,7 @@ export function CarritoEstudio({ hoy, ahora, lunes, ultimaFecha, reservas, pagoH
   function revisarCarrito() {
     const fallo = carrito.map((s) => validarSesion(s, { ...opciones, ahora: ahoraMerida(), omitirId: s.id })).find(Boolean);
     if (!carrito.length || fallo) { setError(fallo ?? "Agrega una sesión al carrito."); return false; }
+    if (horasCarrito(carrito) > MAX_HORAS_PEDIDO) { setError(TOPE_HORAS); return false; }
     return true;
   }
   function continuar() {

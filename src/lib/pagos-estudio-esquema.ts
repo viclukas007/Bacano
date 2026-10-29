@@ -24,6 +24,8 @@ export const ESQUEMA_PAGOS = `
     UNIQUE (propietario_hash, clave_idempotencia)
   );
   CREATE INDEX IF NOT EXISTS estudio_pedidos_pendientes ON estudio_pedidos (expira_en) WHERE estado IN ('creando','pendiente','rechazado');
+  ALTER TABLE estudio_pedidos ADD COLUMN IF NOT EXISTS cliente_hash text;
+  CREATE INDEX IF NOT EXISTS estudio_pedidos_cliente ON estudio_pedidos (cliente_hash) WHERE estado IN ('creando','pendiente','rechazado');
   CREATE TABLE IF NOT EXISTS estudio_pedido_sesiones (
     pedido_id uuid NOT NULL REFERENCES estudio_pedidos(id),
     indice integer NOT NULL,

@@ -81,7 +81,7 @@ El visitante puede armar su carrito y revisar contacto y total, con la identidad
 
 ## Decisiones de esta entrega
 
-- El carrito admite hasta 50 sesiones; las cantidades de ediciones y paquetes de reels se limitan a 20 por sesión.
+- El carrito admite hasta 6 sesiones y 26 horas por pedido (desde el 28-oct-2026; antes 50 sesiones sin tope de horas); las cantidades de ediciones y paquetes de reels se limitan a 20 por sesión. Para más horas se atiende por WhatsApp.
 - El calendario consultado aporta únicamente la ocupación de la semana visible; fuera de ella se indica que hay que cambiar de semana para consultar. El frontend no garantiza disponibilidad.
 - Todos los precios y cantidades se validan en el backend antes de crear un pedido o iniciar un pago.
 - La compilación en Windows sobre E: encontró limitaciones del sistema de archivos; se verificó la producción mediante el Dockerfile existente en Linux.

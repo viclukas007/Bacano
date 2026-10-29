@@ -202,6 +202,29 @@ test("el administrador respeta apartados y no puede editar ni borrar reservas vi
   await enviarWebhook(pago(pedido));
   await assert.rejects(() => admin.guardarReserva({ quien: "Cambio", tipo: "renta", desde: `${fecha} 18:00`, hasta: `${fecha} 19:00` }, reserva.id), /vinculada a un pago/);
 });
+test("el tope de intentos abiertos cuenta también por dirección del cliente, no solo por cookie", async () => {
+  const dia = sumarDias(fecha, 1);
+  const enviar = (inicio, xff) => checkout.POST(new NextRequest(`${config.appUrl}/api/estudio/checkout`, { method: "POST", headers: { "Content-Type": "application/json", origin: config.appUrl, "x-forwarded-for": xff }, body: JSON.stringify({ contacto, sesiones: [sesion(inicio, { fecha: dia })], clave: randomUUID() }) }));
+  for (const inicio of ["08:00", "09:00", "10:00"]) assert.equal((await enviar(inicio, "203.0.113.9")).status, 200);
+  // Sin cookie el servidor fabrica un propietario nuevo; antes eso reiniciaba el tope.
+  // Un primer salto inventado tampoco ayuda: cuenta el último, que lo agrega el proxy.
+  assert.equal((await enviar("11:00", "198.51.100.1, 203.0.113.9")).status, 429);
+  assert.equal((await enviar("11:00", "203.0.113.10")).status, 200);
+  const [{ n }] = await db.sql`SELECT count(DISTINCT cliente_hash)::int AS n FROM estudio_pedidos WHERE cliente_hash IS NOT NULL`;
+  assert.equal(n, 2);
+});
+test("el administrador libera un apartado sin pagar; un pago posterior queda en revisión", async () => {
+  const dia = sumarDias(fecha, 1);
+  const pedido = await crear([sesion("12:00", { fecha: dia })]);
+  await admin.liberarPedido(pedido.id);
+  const [r] = await db.sql`SELECT estado FROM estudio_pedidos WHERE id = ${pedido.id}`; assert.equal(r.estado, "expirado");
+  const [{ n }] = await db.sql`SELECT count(*)::int AS n FROM reservas WHERE pedido_id = ${pedido.id}`; assert.equal(n, 0);
+  const nuevo = await crear([sesion("12:00", { fecha: dia })]);
+  assert.equal((await enviarWebhook(pago(pedido))).status, 200);
+  const [tarde] = await db.sql`SELECT estado FROM estudio_pedidos WHERE id = ${pedido.id}`; assert.equal(tarde.estado, "revision");
+  const [reserva] = await db.sql`SELECT pedido_id, estado FROM reservas WHERE desde = ${`${dia} 12:00`}::timestamp`;
+  assert.equal(reserva.pedido_id, nuevo.id); assert.equal(reserva.estado, "apartado");
+});
 test("la conciliación recupera una aprobación cuyo webhook no llegó", async () => {
   const r = await servicio.iniciarCheckout(datos([sesion("17:00")]), randomBytes(32).toString("hex"), randomUUID(), config);
   const [pedido] = await db.sql`SELECT * FROM estudio_pedidos WHERE id = ${r.pedido}`;

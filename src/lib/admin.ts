@@ -10,7 +10,7 @@ import { prepararBase, sql } from "@/lib/db";
 import type { Reserva, TipoReserva } from "@/lib/estudio";
 import type { Episodio, Show } from "@/lib/types";
 import { bloquearEstudio, expirarApartadosTx, limpiarApartados } from "./pagos-estudio";
-import { ErrorPago } from "./pagos-estudio-reglas";
+import { ErrorPago, esUuid } from "./pagos-estudio-reglas";
 
 /**
  * Consultas del admin. A diferencia de `content.ts`, van directo a la base
@@ -284,5 +284,22 @@ export async function eliminarReserva(id: number): Promise<void> {
     const [reserva] = await tx`SELECT pedido_id FROM reservas WHERE id = ${id}`;
     if (reserva?.pedido_id) throw new ErrorPago("Esta reserva está vinculada a un pago. Revísala en Pedidos.");
     await tx`DELETE FROM reservas WHERE id = ${id}`;
+  });
+}
+
+/**
+ * Libera los apartados de un pedido sin pagar y lo da por vencido. Si el pago
+ * llega después, `aplicarPago` lo manda a revisión en vez de confirmarlo. Las
+ * reservas ya confirmadas no se tocan.
+ */
+export async function liberarPedido(id: string): Promise<void> {
+  await abrir();
+  if (!esUuid(id)) throw new ErrorPago("Pedido inválido.");
+  await sql.begin(async tx => {
+    await bloquearEstudio(tx);
+    await expirarApartadosTx(tx);
+    await tx`UPDATE estudio_pedidos SET estado = 'expirado', expira_en = now(), actualizado_en = now()
+      WHERE id = ${id} AND estado IN ('creando','pendiente','rechazado')`;
+    await tx`DELETE FROM reservas WHERE pedido_id = ${id} AND estado = 'apartado'`;
   });
 }

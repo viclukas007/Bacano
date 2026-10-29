@@ -14,6 +14,14 @@ export const CLAVE_CARRITO = "bacano:carrito-estudio:v2";
 export const APERTURA = 8;
 export const CIERRE = 21;
 export const MAX_UNIDADES = 20;
+/**
+ * Tope por pedido en línea: lo que necesita una grabación real. Sin él, dos
+ * carritos de 50 sesiones de 13 h bastaban para apartar el calendario entero
+ * sin pagar. Para más horas, el estudio atiende por WhatsApp.
+ */
+export const MAX_SESIONES_PEDIDO = 6;
+export const MAX_HORAS_PEDIDO = 26;
+export const horasCarrito = (sesiones: ConfiguracionEstudio[]) => sesiones.reduce((total, s) => total + s.horas, 0);
 
 export interface SesionEstudio {
   id: string;
@@ -103,6 +111,6 @@ export function leerCarrito(texto: string | null, ahora?: string): SesionEstudio
       if (validarSesion(s, { hoy: ahora?.slice(0, 10) ?? "2000-01-01", ultimaFecha: "9999-12-31", ahora, reservas: [], carrito: [] })) return false;
       ids.add(s.id);
       return true;
-    });
+    }).slice(0, MAX_SESIONES_PEDIDO);
   } catch { return []; }
 }

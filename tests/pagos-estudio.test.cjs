@@ -19,6 +19,14 @@ test("validación estricta de contacto, cantidades, tipos, fechas y sesiones", (
     assert.throws(() => validarPedido(entrada, ahora));
   }
 });
+test("limita sesiones y horas por pedido: 6 sesiones o 26 horas, lo que necesita una grabación", () => {
+  const horas = (n, h = 1) => Array.from({ length: n }, (_, i) => ({ ...sesion, inicio: `${String(8 + i).padStart(2, "0")}:00`, horas: h }));
+  assert.equal(validarPedido({ contacto, sesiones: horas(6) }, ahora).sesiones.length, 6);
+  assert.throws(() => validarPedido({ contacto, sesiones: horas(7) }, ahora), /entre 1 y 6/);
+  const dosDias = [{ ...sesion, horas: 13 }, { ...sesion, fecha: "2026-11-03", horas: 13 }];
+  assert.equal(validarPedido({ contacto, sesiones: dosDias }, ahora).totalCentavos, 2 * (1100 + 12 * 700) * 100);
+  assert.throws(() => validarPedido({ contacto, sesiones: [...dosDias, { ...sesion, fecha: "2026-11-04" }] }, ahora), /hasta 26 horas/);
+});
 test("rechaza traslapes y permite sesiones contiguas", () => {
   assert.throws(() => validarPedido({ contacto, sesiones: [sesion, sesion] }, ahora), /cruza/);
   assert.equal(validarPedido({ contacto, sesiones: [sesion, { ...sesion, inicio: "09:00" }] }, ahora).totalCentavos, 220000);

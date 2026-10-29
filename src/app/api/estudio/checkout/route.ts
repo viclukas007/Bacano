@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 import { configuracionPago } from "@/lib/mercado-pago";
 import { iniciarCheckout } from "@/lib/pagos-estudio";
 import { ErrorPago, validarPedido } from "@/lib/pagos-estudio-reglas";
-import { COOKIE_PEDIDO, leerJsonLimitado, respuestaError } from "@/lib/pagos-http";
+import { COOKIE_PEDIDO, direccionCliente, leerJsonLimitado, respuestaError } from "@/lib/pagos-http";
 
 export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const entrada = await leerJsonLimitado(request);
     const datos = validarPedido(entrada);
     const clave = (entrada as { clave?: string }).clave ?? "";
-    const resultado = await iniciarCheckout(datos, propietario!, clave, config);
+    const resultado = await iniciarCheckout(datos, propietario!, clave, config, direccionCliente(request));
     respuesta = NextResponse.json(resultado, { headers: { "Cache-Control": "no-store" } });
   } catch (error) { respuesta = respuestaError(error); }
   // También al fallar la conexión externa: el reintento debe recuperar el mismo pedido.

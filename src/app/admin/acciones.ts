@@ -18,6 +18,7 @@ import {
   sumarDias,
   type TipoReserva,
 } from "@/lib/estudio";
+import { esUuid } from "@/lib/pagos-estudio-reglas";
 import type { Formato, Modo } from "@/lib/types";
 import { sincronizarYouTube } from "@/lib/youtube";
 
@@ -319,4 +320,16 @@ export async function eliminarReserva(fd: FormData): Promise<void> {
   updateTag(TAG_ESTUDIO);
   const fecha = texto(fd, "fecha");
   redirect(fechaValida(fecha) ? `/admin/estudio?semana=${fecha}` : "/admin/estudio");
+}
+
+// --- Pedidos ------------------------------------------------------------------
+
+/** Devuelve al calendario los horarios de un pedido que nadie pagó. */
+export async function liberarPedido(fd: FormData): Promise<void> {
+  await exigirSesion();
+  const id = texto(fd, "id");
+  if (!esUuid(id)) redirect("/admin/pedidos");
+  await admin.liberarPedido(id);
+  updateTag(TAG_ESTUDIO);
+  redirect(`/admin/pedidos#${id}`);
 }

@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // El driver de Postgres usa net/tls de Node; mejor fuera del bundle.
   serverExternalPackages: ["postgres"],
+  // Las acciones del servidor solo reciben formularios de texto; el tope por
+  // defecto (1 MB) daba de sobra para campos maliciosos.
+  experimental: { serverActions: { bodySizeLimit: "64kb" } },
   images: {
     remotePatterns: [
       // Miniaturas de los videos de YouTube.
