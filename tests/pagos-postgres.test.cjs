@@ -24,6 +24,7 @@ const originalFetch = global.fetch;
 const pagosRemotos = new Map();
 let preferencias = 0;
 let falloPreferencia = false;
+let vendedorPreferencia = 123;
 let db, servicio, checkout, webhook, estadoRoute, admin;
 const config = { token: "token-falso-solo-tests", secreto: "secreto-falso-tests", vendedor: "123", appUrl: "https://bacano.example", produccion: false, minutos: 15 };
 const contacto = { nombre: "Cliente prueba", correo: "cliente@example.com", telefono: "+52 999 123 4567", notas: "Integración" };
@@ -79,7 +80,7 @@ before(async () => {
       assert.match(body.notification_url, /\/api\/mercadopago\/webhook$/);
       assert.equal(body.expires, true);
       if (falloPreferencia) throw new Error("Timeout simulado");
-      return Response.json({ id: `pref-${body.external_reference}`, init_point: "https://www.mercadopago.com.mx/checkout/v1/test", sandbox_init_point: "https://sandbox.mercadopago.com.mx/checkout/v1/test" });
+      return Response.json({ id: `pref-${body.external_reference}`, init_point: "https://www.mercadopago.com.mx/checkout/v1/test", sandbox_init_point: "https://sandbox.mercadopago.com.mx/checkout/v1/test", collector_id: vendedorPreferencia });
     }
     if (url.pathname === "/v1/payments/search") return Response.json({ results: [...pagosRemotos.values()].filter(p => p.external_reference === url.searchParams.get("external_reference")) });
     const p = pagosRemotos.get(url.pathname.split("/").pop());
@@ -193,6 +194,20 @@ test("el timeout al crear preferencia conserva el pedido; reintentar no duplica 
   const r = await servicio.iniciarCheckout(d, propietario, clave, config);
   const [{ n }] = await db.sql`SELECT count(*)::int AS n FROM reservas WHERE pedido_id = ${r.pedido}`; assert.equal(n, 1);
   await assert.rejects(() => servicio.crearPedido(datos([sesion("16:00")]), propietario, clave, 15), /otro carrito/);
+});
+test("una preferencia de otro vendedor no se entrega al cliente; con el vendedor correcto el mismo pedido sí cobra", async () => {
+  const propietario = randomBytes(32).toString("hex"); const clave = randomUUID(); const d = datos([sesion("19:00")]);
+  const pedido = await servicio.crearPedido(d, propietario, clave, 15);
+  // El 28-oct-2026 la variable traía el ID de la app: el checkout cobraba y cada pago se rechazaba.
+  vendedorPreferencia = 1433857921998790;
+  try { await assert.rejects(() => servicio.iniciarCheckout(d, propietario, clave, config), error => error.status === 503); } finally { vendedorPreferencia = 123; }
+  let [r] = await db.sql`SELECT preferencia_id, checkout_url, estado FROM estudio_pedidos WHERE id = ${pedido.id}`;
+  assert.deepEqual({ ...r }, { preferencia_id: null, checkout_url: null, estado: "creando" });
+  const recuperado = await servicio.iniciarCheckout(d, propietario, clave, config);
+  assert.equal(recuperado.pedido, pedido.id);
+  [r] = await db.sql`SELECT preferencia_id, estado FROM estudio_pedidos WHERE id = ${pedido.id}`;
+  assert.equal(r.preferencia_id, `pref-${pedido.id}`); assert.equal(r.estado, "pendiente");
+  const [{ n }] = await db.sql`SELECT count(*)::int AS n FROM reservas WHERE pedido_id = ${pedido.id}`; assert.equal(n, 1);
 });
 test("el administrador respeta apartados y no puede editar ni borrar reservas vinculadas a pagos", async () => {
   const pedido = await crear([sesion("16:00")]);

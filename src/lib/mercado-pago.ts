@@ -36,7 +36,7 @@ async function pedir<T>(ruta: string, config: ConfigPago, body?: unknown, clave?
 }
 export async function crearPreferencia(pedido: { id: string; total_centavos: number; correo: string; expira_en: Date | string }, config: ConfigPago) {
   const retorno = `${config.appUrl}/estudio/pago?pedido=${pedido.id}`;
-  const resultado = await pedir<{ id: string; init_point: string }>("/checkout/preferences", config, {
+  const resultado = await pedir<{ id: string; init_point: string; collector_id?: number }>("/checkout/preferences", config, {
     items: [{ id: pedido.id, title: "Reserva de estudio Bacano", currency_id: "MXN", quantity: 1, unit_price: pedido.total_centavos / 100 }],
     payer: { email: pedido.correo }, external_reference: pedido.id,
     back_urls: { success: retorno, pending: retorno, failure: retorno }, auto_return: "approved",
@@ -45,6 +45,14 @@ export async function crearPreferencia(pedido: { id: string; total_centavos: num
     // Los medios diferidos pueden aprobarse después del apartado; se excluyen en esta versión.
     payment_methods: { excluded_payment_types: [{ id: "ticket" }, { id: "atm" }, { id: "bank_transfer" }], default_installments: 1 },
   }, pedido.id);
+  // El vendedor de la preferencia es el dueño del token. Si no es el de
+  // MERCADOPAGO_COLLECTOR_ID, cada pago llegaría y se rechazaría en
+  // validarPagoMP (pasó el 28-oct-2026 con el ID de la app en esa variable):
+  // mejor no cobrar. El apartado se conserva y vence solo.
+  if (String(resultado.collector_id ?? "") !== config.vendedor) {
+    console.error(`[pagos] la preferencia del pedido ${pedido.id} es del vendedor ${resultado.collector_id ?? "desconocido"} y MERCADOPAGO_COLLECTOR_ID es ${config.vendedor}: no se entrega el checkout`);
+    throw new ErrorPago("El cobro en línea no está disponible por ahora. Escríbenos por WhatsApp para reservar.", PROVEEDOR_FALLO);
+  }
   // Siempre init_point: con las credenciales de prueba actuales el checkout de
   // prueba corre en www.mercadopago.com.mx; sandbox_init_point es el modelo
   // viejo y responde "algo salió mal".

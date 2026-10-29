@@ -18,6 +18,7 @@ Validación local del 2026-10-25: 32 pruebas aprobadas (19 de reglas y 13 de int
 - Si un webhook falla, Mercado Pago lo reintenta con esperas crecientes; el mantenimiento consulta el pago en la API y lo aplica sin esperar el reintento.
 - Para comprobar la clave del webhook sin pagar: panel → Webhooks → "Simular notificación" con el evento Pagos y un ID cualquiera. Si el servidor responde 401, la clave en EasyPanel no coincide; si responde 503 (pago inexistente), la firma pasó.
 - El dominio sin `www` debe redirigir al principal (regla de Redirects en EasyPanel); si ambos sirven el sitio, el que no coincide con `APP_URL` falla al pagar.
+- **`MERCADOPAGO_COLLECTOR_ID` con el ID de la aplicación** (28-oct-2026): el checkout cobraba, pero cada pago llegaba con el User ID real como vendedor y se rechazaba con 422 (`[pagos] pago … rechazado …: vendedor=61072532` en los logs); el apartado venció y el pedido quedó `expirado` sin pago registrado. Desde el 29-oct el checkout compara el `collector_id` de la preferencia con la variable y se niega a cobrar si no coinciden.
 
 ## Orden de activación
 
@@ -41,7 +42,7 @@ Copiar los nombres de `.env.example` al entorno local o al servicio web de EasyP
 | `MERCADOPAGO_ENABLED` | `false` inicialmente; `true` al terminar configuración y pruebas |
 | `MERCADOPAGO_ENV` | `test` o `production`; se compara contra `live_mode` del pago |
 | `MERCADOPAGO_ACCESS_TOKEN` | Access Token del vendedor y entorno elegidos; secreto de servidor |
-| `MERCADOPAGO_COLLECTOR_ID` | ID numérico del vendedor que recibe el pago |
+| `MERCADOPAGO_COLLECTOR_ID` | User ID numérico de la cuenta que recibe el pago: el último bloque del Access Token (`APP_USR-<app>-<fecha>-<hash>-<user id>`), **no** el ID de la aplicación. Si no coincide con el vendedor de la preferencia, el checkout responde 503 y no cobra |
 | `MERCADOPAGO_WEBHOOK_SECRET` | Clave secreta de Webhooks de esa aplicación |
 | `ESTUDIO_APARTADO_MINUTOS` | `15` inicialmente; entero entre 5 y 60 |
 | `ESTUDIO_CRON_SECRET` | Secreto aleatorio de al menos 32 caracteres para mantenimiento |

@@ -1,14 +1,23 @@
 # Avances: carrito de renta del estudio
 
-## Estado actual: 2026-10-28
+## Estado actual: 2026-10-29
 
 - Carrito, pedidos y pagos publicados en https://www.bacano.mx/#estudio, con Mercado Pago en producción (cobros reales desde el 28-oct-2026). Docker local en http://127.0.0.1:3001/#estudio.
 - Precios vigentes en [PLAN-RESERVAS.md](PLAN-RESERVAS.md), cambiados el 28-oct-2026 (commit af007cb).
-- 37 pruebas aprobadas: 22 de reglas y 15 de integración. PostgreSQL fue real; la API de Mercado Pago fue simulada.
+- 38 pruebas aprobadas: 22 de reglas y 16 de integración. PostgreSQL fue real; la API de Mercado Pago fue simulada.
+- Incidente del 28-oct (ver abajo): el primer pago real (pedido 0177bae2) nunca se confirmó porque `MERCADOPAGO_COLLECTOR_ID` traía el ID de la aplicación. Variable corregida en EasyPanel el 29-oct; el checkout ahora se niega a cobrar si el vendedor no coincide.
 - Auditoría de seguridad del 28-oct-2026 (ver más abajo): los dos hallazgos de severidad media quedaron arreglados en el commit 4c9992c; queda uno bajo y tres pendientes de validación que dependen de producción.
 - af007cb ya está en producción (el pedido bc6b0d87 del 28-oct se creó con $1,100). Ese pedido no se pudo pagar como invitado: el correo del formulario era el de la cuenta vendedora ("Espacios Ejecutivos") y Mercado Pago deshabilita "Pagar" cuando quien paga es el mismo que cobra (`invalid_users`). Con otro correo, como invitado, el primer pago productivo se acreditó (pedido 0177bae2, operación 186607470750, $1,100): la tarjeta podía ser la misma, lo que bloqueaba era el correo.
-- Pendientes: redesplegar 4c9992c en EasyPanel, cron del mantenimiento, borrar la reserva de prueba del 11-nov-2026, políticas comerciales definitivas (cancelación, facturación, anticipos), el hallazgo bajo de la auditoría (la vista Pedidos solo muestra los 100 más nuevos) y las tres comprobaciones en producción que pide `NEEDS-VALIDATION.md`.
+- Pendientes: conciliar el pedido 0177bae2 (queda en `revision`) y recrear a mano su reserva del 29-oct 19:00–20:00, cron del mantenimiento, borrar la reserva de prueba del 11-nov-2026, políticas comerciales definitivas (cancelación, facturación, anticipos), el hallazgo bajo de la auditoría (la vista Pedidos solo muestra los 100 más nuevos) y las tres comprobaciones en producción que pide `NEEDS-VALIDATION.md`.
 - Guía de activación: [PAGOS-MERCADOPAGO.md](PAGOS-MERCADOPAGO.md). Seguimiento: [PLAN-RESERVAS.md](PLAN-RESERVAS.md).
+
+## 2026-10-29 — pago real sin confirmar por el ID del vendedor
+
+- El primer pago real (pedido 0177bae2, operación 186607470750, $1,100, sesión 29-oct 19:00–20:00) quedó aprobado en Mercado Pago a las 18:08 del 28-oct, dentro del apartado (vencía 18:20), pero el sitio nunca lo confirmó: en los logs de EasyPanel hay 22 rechazos `[pagos] pago … rechazado para el pedido 0177bae2…: vendedor=61072532`, entre reintentos del webhook y clics en "Actualizar estado". Un segundo pago del mismo pedido (186606911078) se rechazó igual.
+- Causa: `MERCADOPAGO_COLLECTOR_ID` en EasyPanel traía `1433857921998790`, el ID de la aplicación "Bacano Estudio", y no el User ID de la cuenta que cobra (`61072532`, el último bloque del Access Token). `validarPagoMP` compara el `collector_id` del pago con esa variable y rechazaba todos los pagos reales con 422; el checkout, en cambio, cobraba sin problema. A las 18:20 el apartado venció, el pedido pasó a `expirado` y la reserva desapareció del calendario; en `/admin/pedidos` el pedido salía sin ningún pago.
+- Arreglo de configuración (29-oct): `MERCADOPAGO_COLLECTOR_ID=61072532` en EasyPanel y redespliegue del servicio web.
+- Arreglo de código: `crearPreferencia` compara el `collector_id` que devuelve Mercado Pago al crear la preferencia con la variable y, si no coinciden, registra el error y responde 503 sin entregar el checkout (el apartado se conserva y vence solo). Así un error de configuración bloquea el cobro en vez de aceptar pagos que después se rechazan. Prueba de integración nueva: una preferencia de otro vendedor no deja `preferencia_id` ni `checkout_url`, y al corregir el vendedor el mismo pedido sí obtiene su checkout.
+- Lo que queda del incidente: al conciliar el pedido (botón "Actualizar estado" de la página de pago, el mantenimiento o un reintento del webhook) pasa a `revision` con sus pagos, porque el apartado ya venció; la reserva del 29-oct 19:00–20:00 hay que crearla a mano en `/admin/estudio`. Revisar en Mercado Pago si 186606911078 también quedó aprobado (sería un cobro doble).
 
 ## 2026-10-28 — auditoría de seguridad y arreglos de severidad media
 
